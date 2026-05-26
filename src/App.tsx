@@ -1,0 +1,226 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Sidebar from './components/Sidebar'
+import Home from './pages/Home'
+import Scheduler from './pages/Scheduler'
+import Settings from './pages/Settings'
+import Logs from './pages/Logs'
+import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig } from './lib/types'
+import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
+import { api, WS_URL } from './lib/api'
+
+let nextLogId = INITIAL_LOGS.length + 1
+
+const SERVER_REVERSE: Record<string, DeviceConfig['server']> = {
+  '官服': 'CN', 'B服': 'CN',
+  '国际服': 'Global', '国际服青少年': 'Global', '韩国ONE': 'Global', 'Steam国际服': 'Global',
+  '日服': 'JP', '日服PC端': 'JP',
+}
+
+function mapRawToConfig(raw: Record<string, unknown>, prev: DeviceConfig): DeviceConfig {
+  const ip   = (raw.adbIP as string | undefined) ?? ''
+  const port = (raw.adbPort as string | undefined) ?? ''
+  const serial = ip ? (port ? `${ip}:${port}` : ip) : prev.serial
+  const rawServer = raw.server as string | undefined
+  const server: DeviceConfig['server'] = (rawServer ? SERVER_REVERSE[rawServer] : undefined) ?? prev.server
+  const fav1 = raw.favorStudent1 as string[] | undefined
+  const fav2 = raw.favorStudent2 as string[] | undefined
+  return {
+    ...prev,
+    serial,
+    server,
+    screenshotMethod:   (raw.screenshot_method as DeviceConfig['screenshotMethod']) ?? prev.screenshotMethod,
+    screenshotInterval: Number(raw.screenshot_interval ?? prev.screenshotInterval),
+    thenAction:         (raw.then as DeviceConfig['thenAction']) ?? prev.thenAction,
+    autoStart:          Boolean(raw.autostart ?? prev.autoStart),
+    cafeInvite1:        (fav1?.[0]) ?? prev.cafeInvite1,
+    cafeInvite2:        (fav2?.[0]) ?? prev.cafeInvite2,
+    normalStages:       (raw.mainlinePriority as string | undefined) ?? prev.normalStages,
+    hardStages:         (raw.hardPriority as string | undefined) ?? prev.hardStages,
+    notifyEnabled:      Boolean(raw.push_after_error ?? raw.push_after_completion ?? prev.notifyEnabled),
+    notifyWebhook:      (raw.push_json as string | undefined) ?? prev.notifyWebhook,
+  }
+}
+
+export default function App() {
+  const [page, setPage]               = useState<Page>('home')
+  const [runState, setRunState]       = useState<RunState>('idle')
+  const [currentTask, setCurrentTask] = useState<string | null>(null)
+  const [tasks, setTasks]             = useState<TaskConfig[]>(INITIAL_TASKS)
+  const [logs, setLogs]               = useState<LogEntry[]>(INITIAL_LOGS)
+  const [config, setConfig]           = useState<DeviceConfig>(INITIAL_CONFIG)
+  const [rawConfig, setRawConfig]     = useState<Record<string, unknown>>({})
+  const [serverOk, setServerOk]       = useState(false)
+  const [configList, setConfigList]   = useState<string[]>(['default'])
+  const [activeConfig, setActiveConfig] = useState<string>('default')
+
+  const wsRef = useRef<WebSocket | null>(null)
+
+  // ── Append log entries ──────────────────────────────────────────────────
+  const addLog = useCallback((entry: Omit<LogEntry, 'id'>) => {
+    setLogs(prev => [...prev.slice(-800), { ...entry, id: nextLogId++ }])
+  }, [])
+
+  // ── WebSocket connection ────────────────────────────────────────────────
+  const connectWS = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return
+    const ws = new WebSocket(WS_URL)
+    wsRef.current = ws
+
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data)
+        if (msg.type === 'init' || msg.type === 'status') {
+          const d = msg.data ?? msg
+          if (typeof d.running === 'boolean')
+            setRunState(d.running ? 'running' : 'idle')
+          if ('currentTask' in d) setCurrentTask(d.currentTask ?? null)
+        } else if (msg.type === 'log' && msg.data) {
+          addLog(msg.data)
+        }
+      } catch { /* ignore */ }
+    }
+
+    ws.onopen  = () => setServerOk(true)
+    ws.onclose = () => {
+      setServerOk(false)
+      setTimeout(connectWS, 3000)   // auto-reconnect
+    }
+    ws.onerror = () => ws.close()
+  }, [addLog])
+
+  // ── Refresh tasks from server ───────────────────────────────────────────
+  const refreshTasks = useCallback(() => {
+    api.getTasks().then(setTasks).catch(() => null)
+  }, [])
+
+  // ── Bootstrap: fetch data and connect WS ───────────────────────────────
+  useEffect(() => {
+    connectWS()
+
+    api.getTasks().then(setTasks).catch(() => {/* use mock */})
+    api.getConfig().then(raw => {
+      setRawConfig(raw)
+      setConfig(prev => mapRawToConfig(raw, prev))
+    }).catch(() => {/* use mock */})
+
+    api.getConfigs().then(({ configs, active }) => {
+      setConfigList(configs)
+      setActiveConfig(active)
+    }).catch(() => {})
+
+    api.getStatus().then(s => {
+      setRunState(s.running ? 'running' : 'idle')
+      setCurrentTask((s.currentTask as string | null) ?? null)
+    }).catch(() => {/* use mock */})
+
+    // Poll tasks every 30s to pick up next_tick updates from running BAAS
+    const tid = setInterval(refreshTasks, 30_000)
+
+    return () => { wsRef.current?.close(); clearInterval(tid) }
+  }, [connectWS, refreshTasks])
+
+  // ── Start / Stop ────────────────────────────────────────────────────────
+  async function handleToggleRun() {
+    if (!serverOk) {
+      addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端 (webui_server.py)，当前为 Demo 模式' })
+      return
+    }
+    if (runState === 'idle') {
+      setRunState('running')
+      const res = await api.start().catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+      if (!res.ok) {
+        setRunState('idle')
+        addLog({ level: 'ERROR', time: now(), message: `启动失败: ${res.error ?? ''}` })
+      }
+    } else if (runState === 'running') {
+      setRunState('stopping')
+      await api.stop().catch(() => null)
+      setTimeout(() => setRunState('idle'), 800)
+    }
+  }
+
+  // ── Task updates ────────────────────────────────────────────────────────
+  function handleUpdateTask(updated: TaskConfig) {
+    const next = tasks.map(t => t.func_name === updated.func_name ? updated : t)
+    setTasks(next)
+    if (serverOk) api.putTasks(next).catch(() => null)
+  }
+
+  function handleReorderTasks(reordered: TaskConfig[]) {
+    setTasks(reordered)
+    if (serverOk) api.putTasks(reordered).catch(() => null)
+  }
+
+  function handleToggleAll(enabled: boolean) {
+    const next = tasks.map(t => ({ ...t, enabled }))
+    setTasks(next)
+    if (serverOk) api.putTasks(next).catch(() => null)
+  }
+
+  // ── Config save (receives full raw BAAS config) ─────────────────────────
+  async function handleSaveConfig(raw: Record<string, unknown>) {
+    setRawConfig(raw)
+    setConfig(prev => mapRawToConfig(raw, prev))
+    if (!serverOk) return
+    await api.putConfig(raw).catch(() => null)
+  }
+
+  async function handleSwitchConfig(name: string) {
+    await api.setActiveConfig(name).catch(() => null)
+    setActiveConfig(name)
+    const [newTasks, raw] = await Promise.all([
+      api.getTasks().catch(() => null),
+      api.getConfig().catch(() => null),
+    ])
+    if (newTasks) setTasks(newTasks)
+    if (raw) { setRawConfig(raw); setConfig(prev => mapRawToConfig(raw, prev)) }
+  }
+
+  async function handleCreateConfig(name: string) {
+    await api.createConfig(name)
+    const { configs, active } = await api.getConfigs()
+    setConfigList(configs)
+    setActiveConfig(active)
+    await handleSwitchConfig(name)
+  }
+
+  async function handleDeleteConfig(name: string) {
+    await api.deleteConfig(name)
+    const { configs, active } = await api.getConfigs()
+    setConfigList(configs)
+    setActiveConfig(active)
+  }
+
+  async function handleImport(file: File) {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (Array.isArray(data)) {
+      await api.putTasks(data)
+      setTasks(data)
+    } else {
+      await api.putConfig(data)
+      setRawConfig(data)
+      setConfig(prev => mapRawToConfig(data, prev))
+    }
+  }
+
+  const configProps = { configList, activeConfig, onSwitchConfig: handleSwitchConfig, onCreateConfig: handleCreateConfig, onDeleteConfig: handleDeleteConfig }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-ba-bg">
+      <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} />
+      <main className="flex-1 overflow-y-auto">
+        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} {...configProps} />}
+        {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
+        {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} onImport={handleImport} {...configProps} />}
+        {page === 'logs'      && <Logs logs={logs} />}
+      </main>
+    </div>
+  )
+}
+
+function now() {
+  const d = new Date()
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+function pad(n: number) { return String(n).padStart(2, '0') }

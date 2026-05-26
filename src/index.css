@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: #F0F7FD;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1E9F7; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3B9EDB; }
+
+@layer components {
+  .ba-card {
+    @apply bg-ba-card rounded-xl shadow-card;
+  }
+  .ba-btn-primary {
+    @apply bg-ba-primary hover:bg-ba-hover text-white font-semibold
+           px-5 py-2.5 rounded-lg transition-all duration-150
+           active:scale-95 select-none cursor-pointer;
+  }
+  .ba-btn-ghost {
+    @apply bg-transparent hover:bg-ba-pale text-ba-primary font-medium
+           px-4 py-2 rounded-lg transition-all duration-150
+           active:scale-95 select-none cursor-pointer border border-ba-border;
+  }
+  .ba-input {
+    @apply w-full border border-ba-border rounded-lg px-3 py-2
+           text-sm text-ba-navy bg-white
+           focus:outline-none focus:ring-2 focus:ring-ba-primary/30 focus:border-ba-primary
+           transition-all duration-150 placeholder:text-ba-muted/60;
+  }
+  .ba-select {
+    @apply ba-input appearance-none cursor-pointer pr-8;
+  }
+  .ba-label {
+    @apply text-xs font-semibold text-ba-muted uppercase tracking-wide mb-1.5 block;
+  }
+}
+
+.log-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+.log-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
+.log-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
