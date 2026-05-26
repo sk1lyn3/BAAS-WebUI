@@ -162,7 +162,7 @@ export default function App() {
     setRawConfig(raw)
     setConfig(prev => mapRawToConfig(raw, prev))
     if (!serverOk) return
-    await api.putConfig(raw).catch(() => null)
+    await api.putConfig({ ...raw, _configDir: activeConfig }).catch(() => null)
   }
 
   async function handleSwitchConfig(name: string) {

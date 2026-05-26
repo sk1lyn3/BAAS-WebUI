@@ -169,20 +169,22 @@ export default function Settings({
           </Field>
         </Row>
         <Row>
-          <Field label="截图方式" hint="scrcpy 最快，adb 兼容性最好" half>
+          <Field label="截图方式" hint="uiautomator2 按需截图较快，adb 无需额外 agent 兼容性最好，scrcpy 持续解码视频流，virtual_scrcpy 缓存帧极快（需虚拟屏）" half>
             <select className="ba-select" value={str('screenshot_method', 'scrcpy')}
               onChange={e => set('screenshot_method', e.target.value)}>
-              <option value="scrcpy">scrcpy（推荐）</option>
-              <option value="uiautomator2">uiautomator2</option>
-              <option value="adb">adb screencap（慢）</option>
+              <option value="uiautomator2">uiautomator2（推荐）</option>
+              <option value="virtual_scrcpy">virtual_scrcpy（虚拟屏，缓存帧）</option>
+              <option value="scrcpy">scrcpy（持续视频流）</option>
+              <option value="adb">adb screencap（兼容性最好）</option>
             </select>
           </Field>
-          <Field label="操控方式" half>
+          <Field label="操控方式" hint="uiautomator2 通过 agent 注入触控，virtual_scrcpy 用 adb input -d 控制虚拟屏，adb 每次起 shell 最慢" half>
             <select className="ba-select" value={str('control_method', 'uiautomator2')}
               onChange={e => set('control_method', e.target.value)}>
-              <option value="uiautomator2">uiautomator2</option>
-              <option value="adb">adb</option>
-              <option value="nemu">nemu（MuMu 专用）</option>
+              <option value="uiautomator2">uiautomator2（推荐）</option>
+              <option value="virtual_scrcpy">virtual_scrcpy（虚拟屏）</option>
+              <option value="scrcpy">scrcpy（socket 注入）</option>
+              <option value="adb">adb（兼容性最好）</option>
             </select>
           </Field>
           <Field label="截图间隔 (秒)" hint="最小 0.3 秒" half>
