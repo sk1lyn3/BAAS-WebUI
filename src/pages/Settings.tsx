@@ -42,7 +42,7 @@ function Field({ label, hint, children, half }: {
   label: string; hint?: string; children: React.ReactNode; half?: boolean
 }) {
   return (
-    <div className={half ? 'flex-1 min-w-0' : ''}>
+    <div className={half ? 'w-full sm:flex-1 min-w-0' : ''}>
       <label className="ba-label">{label}</label>
       {children}
       {hint && <p className="text-[11px] text-ba-muted mt-1">{hint}</p>}
@@ -51,7 +51,7 @@ function Field({ label, hint, children, half }: {
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div className="flex gap-4">{children}</div>
+  return <div className="flex flex-wrap sm:flex-nowrap gap-4">{children}</div>
 }
 
 function SwitchRow({ label, hint, checked, onChange }: {
@@ -110,9 +110,9 @@ export default function Settings({
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div>
           <h2 className="text-lg font-bold text-ba-navy">设置</h2>
           <ConfigSwitcher configList={configList} activeConfig={activeConfig} onSwitchConfig={onSwitchConfig} onCreateConfig={onCreateConfig} onDeleteConfig={onDeleteConfig} className="mt-1" />
@@ -227,7 +227,7 @@ export default function Settings({
 
       {/* ── 咖啡厅 ───────────────────────────────────────────────────── */}
       <Section title="咖啡厅" subtitle="邀请、奖励、互动配置">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <SwitchRow label="领取小时奖励" checked={bool('cafe_reward_collect_hour_reward', true)} onChange={v => set('cafe_reward_collect_hour_reward', v)} />
           <SwitchRow label="使用邀请券" checked={bool('cafe_reward_use_invitation_ticket', true)} onChange={v => set('cafe_reward_use_invitation_ticket', v)} />
           <SwitchRow label="有二号咖啡厅" checked={bool('cafe_reward_has_no2_cafe')} onChange={v => set('cafe_reward_has_no2_cafe', v)} />
@@ -313,7 +313,7 @@ export default function Settings({
           <input type="number" min="0" max="50" className="ba-input w-32"
             value={str('main_story_regions', '0') || 0} onChange={e => set('main_story_regions', String(e.target.value))} />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SwitchRow label="推图简单模式" hint="仅需 1 支队伍" checked={bool('explore_task_use_simple_mode')} onChange={v => set('explore_task_use_simple_mode', v)} />
           <SwitchRow label="Boss 手动战斗" hint="Boss 战前暂停等待手动" checked={bool('manual_boss')} onChange={v => set('manual_boss', v)} />
         </div>
@@ -321,7 +321,7 @@ export default function Settings({
 
       {/* ── 竞技场 ───────────────────────────────────────────────────── */}
       <Section title="竞技场">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SwitchRow label="排名第一时停止挑战" checked={bool('ArenaStopFightWhenRank1')} onChange={v => set('ArenaStopFightWhenRank1', v)} />
         </div>
         <Row>
@@ -531,7 +531,7 @@ export default function Settings({
       {/* ── 作战演习 ─────────────────────────────────────────────────── */}
       <Section title="作战演习（联合火力）">
         <SwitchRow label="战斗后自动扫荡" checked={bool('drill_enable_sweep', true)} onChange={v => set('drill_enable_sweep', v)} />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[0, 1, 2].map(i => (
             <div key={i} className="space-y-2">
               <div className="text-xs font-medium text-ba-muted">槽位 {i + 1}</div>
@@ -562,7 +562,7 @@ export default function Settings({
 
       {/* ── 推送通知 ─────────────────────────────────────────────────── */}
       <Section title="推送通知" subtitle="任务完成 / 出错时通知">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SwitchRow label="出错时推送" checked={bool('push_after_error')} onChange={v => set('push_after_error', v)} />
           <SwitchRow label="全部完成时推送" checked={bool('push_after_completion')} onChange={v => set('push_after_completion', v)} />
         </div>

@@ -145,15 +145,15 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderT
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
           <h2 className="text-lg font-bold text-ba-navy">调度配置</h2>
           <p className="text-sm text-ba-muted mt-0.5">
             {enabledCount}/{tasks.length} 个任务已启用
             {lastSaved && <span className="ml-2 text-ba-success text-xs">✓ 已保存</span>}
-            {!serverOk && <span className="ml-2 text-ba-warning text-xs">（离线模式，更改不会持久化）</span>}
+            {!serverOk && <span className="ml-2 text-ba-warning text-xs">（离线模式）</span>}
           </p>
           <ConfigSwitcher
             configList={configList}
@@ -165,24 +165,17 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderT
           />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onToggleAll(!allEnabled)}
-            className="ba-btn-ghost text-sm"
-          >
+          <button onClick={() => onToggleAll(!allEnabled)} className="ba-btn-ghost text-sm">
             {allEnabled ? '全部禁用' : '全部启用'}
           </button>
-          <button
-            onClick={handleRefreshAll}
-            className="flex items-center gap-1.5 ba-btn-ghost text-sm"
-          >
+          <button onClick={handleRefreshAll} className="flex items-center gap-1.5 ba-btn-ghost text-sm">
             <RefreshCw size={13} /> 立即刷新
           </button>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-4">
-        {/* Filter tabs */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="flex rounded-lg border border-ba-border bg-white overflow-hidden">
           {(['all', 'enabled', 'disabled'] as const).map(f => (
             <button
@@ -190,16 +183,13 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderT
               onClick={() => setFilter(f)}
               className={cn(
                 'px-3 py-1.5 text-xs font-medium transition-colors',
-                filter === f
-                  ? 'bg-ba-primary text-white'
-                  : 'text-ba-muted hover:text-ba-navy hover:bg-ba-pale'
+                filter === f ? 'bg-ba-primary text-white' : 'text-ba-muted hover:text-ba-navy hover:bg-ba-pale'
               )}
             >
               {{ all: '全部', enabled: '已启用', disabled: '已禁用' }[f]}
             </button>
           ))}
         </div>
-
         <button
           onClick={() => setSortMode(m => m === 'priority' ? 'next_tick' : 'priority')}
           className="flex items-center gap-1.5 text-xs text-ba-muted hover:text-ba-primary border border-ba-border rounded-lg px-3 py-1.5 bg-white hover:bg-ba-pale transition-all"
@@ -207,18 +197,11 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderT
           <ArrowUpDown size={12} />
           {sortMode === 'priority' ? '按优先级' : '按执行时间'}
         </button>
-
-        {dragEnabled && (
-          <span className="text-[11px] text-ba-muted flex items-center gap-1">
-            <GripVertical size={11} className="text-ba-border" />
-            可拖拽排序
-          </span>
-        )}
       </div>
 
       {/* Table */}
-      <div className="ba-card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="ba-card overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[560px]">
           <thead>
             <tr className="border-b border-ba-border bg-ba-pale/50">
               {dragEnabled && <th className="w-8" />}

@@ -43,7 +43,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
   const isStopping = runState === 'stopping'
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-5">
       {/* Banner */}
       <div className="ba-card">
         <div className="h-1.5 rounded-t-xl bg-gradient-to-r from-ba-primary via-sky-400 to-ba-primary bg-[length:200%_100%] animate-[gradient_3s_ease_infinite]" />
@@ -73,7 +73,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={onToggleRun}
           disabled={isStopping}
@@ -161,6 +161,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
           )}
         </div>
       </div>
+
     </div>
   )
 }
