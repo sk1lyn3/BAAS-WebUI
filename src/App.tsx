@@ -76,6 +76,18 @@ export default function App() {
           if ('currentTask' in d) setCurrentTask(d.currentTask ?? null)
         } else if (msg.type === 'log' && msg.data) {
           addLog(msg.data)
+        } else if (msg.type === 'history' && Array.isArray(msg.data)) {
+          // 回放历史日志，按 id 去重合并并排序
+          const entries: LogEntry[] = msg.data
+            .filter((m: { type: string; data?: LogEntry }) => m.type === 'log' && m.data)
+            .map((m: { data: LogEntry }) => m.data)
+          if (entries.length > 0) {
+            setLogs(prev => {
+              const byId = new Map(entries.map(l => [l.id, l]))
+              prev.forEach(l => { if (!byId.has(l.id)) byId.set(l.id, l) })
+              return Array.from(byId.values()).sort((a, b) => a.id - b.id).slice(-800)
+            })
+          }
         }
       } catch { /* ignore */ }
     }
