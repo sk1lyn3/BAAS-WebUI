@@ -163,6 +163,13 @@ export default function App() {
     if (serverOk) api.putTasks(reordered).catch(() => null)
   }
 
+  function handleRefreshAll() {
+    const now = Math.floor(Date.now() / 1000)
+    const next = tasks.map(t => ({ ...t, next_tick: now }))
+    setTasks(next)
+    if (serverOk) api.putTasks(next).catch(() => null)
+  }
+
   function handleToggleAll(enabled: boolean) {
     const next = tasks.map(t => ({ ...t, enabled }))
     setTasks(next)
@@ -223,7 +230,7 @@ export default function App() {
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} {...configProps} />}
-        {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
+        {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} onImport={handleImport} {...configProps} />}
         {page === 'logs'      && <Logs logs={logs} />}
       </main>

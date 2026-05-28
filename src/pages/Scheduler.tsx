@@ -13,6 +13,7 @@ interface Props {
   tasks: TaskConfig[]
   onUpdateTask: (updated: TaskConfig) => void
   onToggleAll: (enabled: boolean) => void
+  onRefreshAll: () => void
   onReorderTasks: (reordered: TaskConfig[]) => void
   serverOk: boolean
   configList: string[]
@@ -49,7 +50,7 @@ function tsToLocal(ts: number): string {
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderTasks, serverOk, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshAll, onReorderTasks, serverOk, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>('priority')
   const [detailTask, setDetailTask] = useState<TaskConfig | null>(null)
   const [filter, setFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
@@ -140,8 +141,7 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onReorderT
   }, [tasks, sortMode, filter])
 
   function handleRefreshAll() {
-    const now = Math.floor(Date.now() / 1000)
-    tasks.forEach(t => onUpdateTask({ ...t, next_tick: now }))
+    onRefreshAll()
   }
 
   return (
