@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Save, RotateCcw, Wifi, Upload } from 'lucide-react'
+import { ChevronDown, Save, RotateCcw, Wifi, Upload, Play } from 'lucide-react'
 import Toggle from '../components/Toggle'
 import ConfigSwitcher from '../components/ConfigSwitcher'
 import { cn } from '../lib/utils'
@@ -79,10 +79,16 @@ export default function Settings({
   const [adbStatus, setAdbStatus] = useState<string | null>(null)
   const [adbLoading, setAdbLoading] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
+  const [activityInfo, setActivityInfo] = useState<Record<string, { name: string; stages: Record<string, unknown> } | null>>({})
+  const [taskRunning, setTaskRunning] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
 
   // Sync form when rawConfig changes (e.g. after switching profiles)
   useEffect(() => { setForm({ ...rawConfig }) }, [rawConfig])
+
+  useEffect(() => {
+    api.getActivity().then(setActivityInfo).catch(() => {})
+  }, [])
 
   // Typed accessors
   const str  = (k: string, d = '')       => (form[k] as string  ?? d)
@@ -309,14 +315,76 @@ export default function Settings({
         <Field label="困难图扫荡关卡" hint="格式：关卡-次数，每关每日限 3 次，如 7-1-3">
           <input className="ba-input" value={str('hardPriority')} onChange={e => set('hardPriority', e.target.value)} placeholder="7-1-3, 7-2-3" />
         </Field>
+        <div className="border-t border-ba-border/40 pt-3 space-y-3">
+          <div className="text-xs font-semibold text-ba-muted uppercase tracking-wide">推图（实际进关卡）</div>
+          <Field label="普通图推图关卡列表" hint="逗号分隔，格式同扫荡">
+            <input className="ba-input" value={str('explore_normal_task_list')} onChange={e => set('explore_normal_task_list', e.target.value)} placeholder="7-1, 7-2" />
+          </Field>
+          <Field label="困难图推图关卡列表" hint="逗号分隔">
+            <input className="ba-input" value={str('explore_hard_task_list')} onChange={e => set('explore_hard_task_list', e.target.value)} placeholder="7-1, 7-2" />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SwitchRow label="推图简单模式" hint="仅需 1 支队伍" checked={bool('explore_task_use_simple_mode')} onChange={v => set('explore_task_use_simple_mode', v)} />
+            <SwitchRow label="Boss 手动战斗" hint="Boss 战前暂停等待手动" checked={bool('manual_boss')} onChange={v => set('manual_boss', v)} />
+          </div>
+        </div>
         <Field label="推进主线剧情章节数" hint="设为 0 则不推进">
           <input type="number" min="0" max="50" className="ba-input w-32"
             value={str('main_story_regions', '0') || 0} onChange={e => set('main_story_regions', String(e.target.value))} />
         </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SwitchRow label="推图简单模式" hint="仅需 1 支队伍" checked={bool('explore_task_use_simple_mode')} onChange={v => set('explore_task_use_simple_mode', v)} />
-          <SwitchRow label="Boss 手动战斗" hint="Boss 战前暂停等待手动" checked={bool('manual_boss')} onChange={v => set('manual_boss', v)} />
-        </div>
+      </Section>
+
+      {/* ── 活动图 ───────────────────────────────────────────────────── */}
+      <Section title="活动图" subtitle="推故事、推任务、推挑战（立即执行，需停止主调度）">
+        {(() => {
+          const serverMap: Record<string, string> = {
+            '官服': 'CN', 'B服': 'CN',
+            '国际服': 'Global', '国际服青少年': 'Global', '韩国ONE': 'Global', 'Steam国际服': 'Global',
+            '日服': 'JP', '日服PC端': 'JP',
+          }
+          const server = serverMap[str('server', '国际服')] ?? 'Global'
+          const info = activityInfo[server]
+          return (
+            <div className="space-y-3">
+              <div className="text-sm text-ba-muted">
+                当期活动：<span className="text-ba-navy font-medium">{info?.name ?? '（无活动数据）'}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(['explore_activity_story', 'explore_activity_mission', 'explore_activity_challenge'] as const).map(task => {
+                  const labels: Record<string, string> = {
+                    explore_activity_story: '推故事',
+                    explore_activity_mission: '推任务',
+                    explore_activity_challenge: '推挑战',
+                  }
+                  const running = taskRunning === task
+                  return (
+                    <button
+                      key={task}
+                      disabled={!serverOk || !info || !!taskRunning}
+                      onClick={async () => {
+                        setTaskRunning(task)
+                        try { await api.runTask(task) } catch { /* shown in logs */ }
+                        setTimeout(() => setTaskRunning(null), 2000)
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+                        running
+                          ? 'bg-ba-primary text-white border-ba-primary'
+                          : serverOk && info
+                          ? 'border-ba-border text-ba-navy hover:bg-ba-pale hover:border-ba-primary hover:text-ba-primary'
+                          : 'border-ba-border text-ba-border cursor-not-allowed'
+                      )}
+                    >
+                      <Play size={12} />
+                      {running ? '已触发' : labels[task]}
+                    </button>
+                  )
+                })}
+              </div>
+              {!serverOk && <p className="text-xs text-ba-muted">需连接后端才能触发</p>}
+            </div>
+          )
+        })()}
       </Section>
 
       {/* ── 竞技场 ───────────────────────────────────────────────────── */}
