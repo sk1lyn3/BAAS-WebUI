@@ -4,6 +4,7 @@ import Toggle from '../components/Toggle'
 import ConfigSwitcher from '../components/ConfigSwitcher'
 import { cn } from '../lib/utils'
 import { api } from '../lib/api'
+import type { ActivityInfo, RunState } from '../lib/types'
 
 interface Props {
   rawConfig: Record<string, unknown>
@@ -11,10 +12,90 @@ interface Props {
   serverOk: boolean
   configList: string[]
   activeConfig: string
+  runState: RunState
+  currentTask: string | null
   onSwitchConfig: (name: string) => void
   onCreateConfig: (name: string) => void
   onDeleteConfig: (name: string) => void
+  onRunTask: (task: string) => Promise<boolean>
+  onStopRun: () => Promise<void>
   onImport: (file: File) => Promise<void>
+}
+
+interface ActivityStageRow {
+  key: string
+  label: string
+  attrs: string
+}
+
+type ShopGood = [string, number, string?]
+
+interface StaticConfig {
+  common_shop_price_list?: Record<string, ShopGood[]>
+  tactical_challenge_shop_price_list?: Record<string, ShopGood[]>
+}
+
+const ATTR_LABELS: Record<string, string> = {
+  burst: '爆发',
+  pierce: '贯穿',
+  mystic: '神秘',
+  shock: '振动',
+}
+
+const STAGE_TYPE_LABELS: Record<string, string> = {
+  story: '故事',
+  mission: '任务',
+  challenge: '挑战',
+}
+
+const TEAM_ATTRS = ['burst', 'pierce', 'mystic', 'shock', 'Unused']
+
+function attrLabel(attr: unknown) {
+  return typeof attr === 'string' ? (ATTR_LABELS[attr] ?? attr) : ''
+}
+
+function stageType(key: string) {
+  if (key.startsWith('story')) return 'story'
+  if (key.startsWith('mission')) return 'mission'
+  if (key.startsWith('challenge')) return 'challenge'
+  return null
+}
+
+function stageLabel(key: string, index: number) {
+  const type = stageType(key)
+  if (!type) return key
+  if (key === type) return `${STAGE_TYPE_LABELS[type]}${index + 1}`
+  const match = key.match(/^(story|mission|challenge)(\d+)/)
+  let label = match ? `${STAGE_TYPE_LABELS[type]}${match[2]}` : key
+  if (key.includes('sss')) label += '三星'
+  if (key.includes('task')) label += '成就任务'
+  return label
+}
+
+function buildActivityRows(stages: Record<string, unknown>) {
+  const rows: ActivityStageRow[] = []
+  Object.entries(stages).forEach(([key, value]) => {
+    const type = stageType(key)
+    if (!type) return
+    if (key === type && Array.isArray(value)) {
+      value.forEach((attr, index) => {
+        const label = attrLabel(attr)
+        if (label) rows.push({ key: `${key}-${index}`, label: stageLabel(key, index), attrs: label })
+      })
+      return
+    }
+    if (value && typeof value === 'object' && 'start' in value) {
+      const start = (value as { start?: unknown }).start
+      if (Array.isArray(start)) {
+        const attrs = start
+          .map(item => Array.isArray(item) ? attrLabel(item[0]) : attrLabel(item))
+          .filter(Boolean)
+          .join(' ')
+        if (attrs) rows.push({ key, label: stageLabel(key, rows.length), attrs })
+      }
+    }
+  })
+  return rows
 }
 
 // ── tiny helper components ───────────────────────────────────────────────────
@@ -72,15 +153,16 @@ function SwitchRow({ label, hint, checked, onChange }: {
 
 export default function Settings({
   rawConfig, onSave, serverOk,
-  configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig, onImport
+  configList, activeConfig, runState, currentTask,
+  onSwitchConfig, onCreateConfig, onDeleteConfig, onRunTask, onStopRun, onImport
 }: Props) {
   const [form, setForm] = useState<Record<string, unknown>>({ ...rawConfig })
   const [saved, setSaved] = useState(false)
   const [adbStatus, setAdbStatus] = useState<string | null>(null)
   const [adbLoading, setAdbLoading] = useState(false)
   const [importMsg, setImportMsg] = useState<string | null>(null)
-  const [activityInfo, setActivityInfo] = useState<Record<string, { name: string; stages: Record<string, unknown> } | null>>({})
-  const [taskRunning, setTaskRunning] = useState<string | null>(null)
+  const [activityInfo, setActivityInfo] = useState<Record<string, ActivityInfo | null>>({})
+  const [staticConfig, setStaticConfig] = useState<StaticConfig>({})
   const importRef = useRef<HTMLInputElement>(null)
 
   // Sync form when rawConfig changes (e.g. after switching profiles)
@@ -88,6 +170,7 @@ export default function Settings({
 
   useEffect(() => {
     api.getActivity().then(setActivityInfo).catch(() => {})
+    api.getStaticConfig().then(cfg => setStaticConfig(cfg as StaticConfig)).catch(() => {})
   }, [])
 
   // Typed accessors
@@ -101,8 +184,104 @@ export default function Settings({
     setSaved(false)
   }
 
+  const isBusy = runState !== 'idle'
+
+  function runTaskButton(task: string, label: string) {
+    const running = runState === 'running' && currentTask === task
+    const disabled = !serverOk || runState === 'stopping' || (isBusy && !running)
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onRunTask(task)}
+        className={cn(
+          'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+          running
+            ? 'bg-ba-primary text-white border-ba-primary'
+            : !disabled
+            ? 'border-ba-border text-ba-navy hover:bg-ba-pale hover:border-ba-primary hover:text-ba-primary'
+            : 'border-ba-border text-ba-border cursor-not-allowed'
+        )}
+      >
+        <Play size={12} />
+        {running ? '运行中' : label}
+      </button>
+    )
+  }
+
+  function stopTaskButton() {
+    if (runState === 'idle') return null
+    return (
+      <button
+        type="button"
+        disabled={runState === 'stopping'}
+        onClick={onStopRun}
+        className={cn(
+          'px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+          runState === 'stopping'
+            ? 'border-ba-border text-ba-border cursor-not-allowed'
+            : 'border-ba-error text-ba-error hover:bg-red-50'
+        )}
+      >
+        {runState === 'stopping' ? '停止中...' : '停止当前任务'}
+      </button>
+    )
+  }
+
+  function teamAttributeEditor(key: 'preset_team_attribute' | 'side_team_attribute', title: string) {
+    const raw = arr(key, key === 'preset_team_attribute'
+      ? Array.from({ length: 4 }, () => Array(5).fill('Unused'))
+      : [Array(4).fill('Unused')]
+    ) as unknown[][]
+    const rowCount = key === 'preset_team_attribute' ? Math.max(raw.length, 4) : Math.max(raw.length, 1)
+    const colCount = key === 'preset_team_attribute' ? 5 : 4
+    const matrix = Array.from({ length: rowCount }, (_, r) => {
+      const row = Array.isArray(raw[r]) ? raw[r] : []
+      return Array.from({ length: colCount }, (_, c) => String(row[c] ?? 'Unused'))
+    })
+    return (
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-ba-muted uppercase tracking-wide">{title}</div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <tbody>
+              {matrix.map((row, r) => (
+                <tr key={r}>
+                  <td className="text-xs text-ba-muted pr-2 py-1 whitespace-nowrap">{key === 'preset_team_attribute' ? `编队 ${r + 1}` : '侧栏顺序'}</td>
+                  {row.map((value, c) => (
+                    <td key={c} className="py-1 pr-2">
+                      <select
+                        className="ba-select py-1.5"
+                        value={value}
+                        onChange={e => {
+                          const next = matrix.map(row => [...row])
+                          next[r][c] = e.target.value
+                          set(key, next)
+                        }}
+                      >
+                        {TEAM_ATTRS.map(attr => <option key={attr} value={attr}>{ATTR_LABELS[attr] ?? '未使用'}</option>)}
+                      </select>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   // ADB serial helpers
   const adbSerial = `${str('adbIP')}:${str('adbPort')}`.replace(/:$/, '')
+  const serverMap: Record<string, string> = {
+    '官服': 'CN', 'B服': 'CN',
+    '国际服': 'Global', '国际服青少年': 'Global', '韩国ONE': 'Global', 'Steam国际服': 'Global',
+    '日服': 'JP', '日服PC端': 'JP',
+  }
+  const serverMode = serverMap[str('server', '国际服')] ?? 'Global'
+  const commonShopGoods = staticConfig.common_shop_price_list?.[serverMode] ?? []
+  const tacticalShopGoods = staticConfig.tactical_challenge_shop_price_list?.[serverMode] ?? []
 
   function handleSave() {
     onSave(form)
@@ -184,7 +363,7 @@ export default function Settings({
               <option value="adb">adb screencap（兼容性最好）</option>
             </select>
           </Field>
-          <Field label="操控方式" hint="uiautomator2 通过 agent 注入触控，virtual_scrcpy 用 adb input -d 控制虚拟屏，adb 每次起 shell 最慢" half>
+          <Field label="操控方式" hint="uiautomator2 通过 agent 注入触控，scrcpy / virtual_scrcpy 通过控制 socket 注入点击，adb 每次起 shell 最慢" half>
             <select className="ba-select" value={str('control_method', 'uiautomator2')}
               onChange={e => set('control_method', e.target.value)}>
               <option value="uiautomator2">uiautomator2（推荐）</option>
@@ -327,23 +506,31 @@ export default function Settings({
             <SwitchRow label="推图简单模式" hint="仅需 1 支队伍" checked={bool('explore_task_use_simple_mode')} onChange={v => set('explore_task_use_simple_mode', v)} />
             <SwitchRow label="Boss 手动战斗" hint="Boss 战前暂停等待手动" checked={bool('manual_boss')} onChange={v => set('manual_boss', v)} />
           </div>
+          <div className="flex flex-wrap gap-2">
+            {runTaskButton('explore_normal_task', '开始推普通图')}
+            {runTaskButton('explore_hard_task', '开始推困难图')}
+            {stopTaskButton()}
+          </div>
         </div>
-        <Field label="推进主线剧情章节数" hint="设为 0 则不推进">
-          <input type="number" min="0" max="50" className="ba-input w-32"
-            value={str('main_story_regions', '0') || 0} onChange={e => set('main_story_regions', String(e.target.value))} />
-        </Field>
+        <div className="border-t border-ba-border/40 pt-3 space-y-3">
+          <Field label="主线剧情需要推的章节数">
+            <input type="number" min="0" max="50" className="ba-input w-32"
+              value={str('main_story_regions', '0') || 0} onChange={e => set('main_story_regions', String(e.target.value))} />
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            {runTaskButton('main_story', '开始推主线剧情')}
+            {runTaskButton('group_story', '开始推小组剧情')}
+            {runTaskButton('mini_story', '开始推支线剧情')}
+            {stopTaskButton()}
+          </div>
+        </div>
       </Section>
 
       {/* ── 活动图 ───────────────────────────────────────────────────── */}
       <Section title="活动图" subtitle="推故事、推任务、推挑战（立即执行，需停止主调度）">
         {(() => {
-          const serverMap: Record<string, string> = {
-            '官服': 'CN', 'B服': 'CN',
-            '国际服': 'Global', '国际服青少年': 'Global', '韩国ONE': 'Global', 'Steam国际服': 'Global',
-            '日服': 'JP', '日服PC端': 'JP',
-          }
-          const server = serverMap[str('server', '国际服')] ?? 'Global'
-          const info = activityInfo[server]
+          const info = activityInfo[serverMode]
+          const rows = info ? buildActivityRows(info.stages) : []
           return (
             <div className="space-y-3">
               <div className="text-sm text-ba-muted">
@@ -356,31 +543,32 @@ export default function Settings({
                     explore_activity_mission: '推任务',
                     explore_activity_challenge: '推挑战',
                   }
-                  const running = taskRunning === task
                   return (
-                    <button
-                      key={task}
-                      disabled={!serverOk || !info || !!taskRunning}
-                      onClick={async () => {
-                        setTaskRunning(task)
-                        try { await api.runTask(task) } catch { /* shown in logs */ }
-                        setTimeout(() => setTaskRunning(null), 2000)
-                      }}
-                      className={cn(
-                        'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                        running
-                          ? 'bg-ba-primary text-white border-ba-primary'
-                          : serverOk && info
-                          ? 'border-ba-border text-ba-navy hover:bg-ba-pale hover:border-ba-primary hover:text-ba-primary'
-                          : 'border-ba-border text-ba-border cursor-not-allowed'
-                      )}
-                    >
-                      <Play size={12} />
-                      {running ? '已触发' : labels[task]}
-                    </button>
+                    <span key={task}>{info ? runTaskButton(task, labels[task]) : null}</span>
                   )
                 })}
+                {stopTaskButton()}
               </div>
+              {rows.length > 0 && (
+                <div className="overflow-x-auto rounded-lg border border-ba-border">
+                  <table className="w-full text-sm min-w-[420px]">
+                    <thead className="bg-ba-pale/60">
+                      <tr>
+                        <th className="text-left text-xs font-semibold text-ba-muted px-3 py-2">关卡</th>
+                        <th className="text-left text-xs font-semibold text-ba-muted px-3 py-2">属性 / 编队</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(row => (
+                        <tr key={row.key} className="border-t border-ba-border/60">
+                          <td className="px-3 py-2 text-ba-navy font-medium whitespace-nowrap">{row.label}</td>
+                          <td className="px-3 py-2 text-ba-muted">{row.attrs}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               {!serverOk && <p className="text-xs text-ba-muted">需连接后端才能触发</p>}
             </div>
           )
@@ -459,21 +647,36 @@ export default function Settings({
 
       {/* ── 普通商店 ─────────────────────────────────────────────────── */}
       <Section title="普通商店" subtitle="选择每日自动购买的物品（与游戏内商店顺序一致）">
-        <div className="grid grid-cols-2 gap-2">
-          {(arr('CommonShopList', Array(16).fill(0)) as number[]).map((v, i) => (
-            <label key={i} className="flex items-center gap-2 text-sm text-ba-navy cursor-pointer">
-              <input type="checkbox" checked={!!v}
-                onChange={e => {
-                  const l = [...(arr('CommonShopList', Array(16).fill(0)) as number[])]
-                  l[i] = e.target.checked ? 1 : 0
-                  set('CommonShopList', l)
-                }}
-                className="accent-ba-primary w-4 h-4"
-              />
-              商品 {i + 1}
-            </label>
-          ))}
-        </div>
+        {(() => {
+          const list = arr('CommonShopList', Array(commonShopGoods.length || 16).fill(0)) as number[]
+          const count = Math.max(list.length, commonShopGoods.length || 16)
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Array.from({ length: count }).map((_, i) => {
+                const good = commonShopGoods[i]
+                const name = good?.[0] ?? `商品 ${i + 1}`
+                const price = good ? `${good[1]}${good[2] === 'creditpoints' ? ' 信用点' : ' 青辉石'}` : ''
+                return (
+                  <label key={i} className="flex items-start gap-2 text-sm text-ba-navy cursor-pointer">
+                    <input type="checkbox" checked={!!list[i]}
+                      onChange={e => {
+                        const l = [...list]
+                        while (l.length < count) l.push(0)
+                        l[i] = e.target.checked ? 1 : 0
+                        set('CommonShopList', l)
+                      }}
+                      className="accent-ba-primary w-4 h-4 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <span className="block">{name}</span>
+                      {price && <span className="block text-xs text-ba-muted">{price}</span>}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          )
+        })()}
         <Row>
           <Field label="商店刷新次数" half>
             <input type="number" min="0" max="10" className="ba-input"
@@ -484,25 +687,37 @@ export default function Settings({
 
       {/* ── 战术挑战商店 ─────────────────────────────────────────────── */}
       <Section title="战术挑战商店" subtitle="选择每次自动购买的物品">
-        {[
-          '宫子神明文字x5','静子神明文字x5','真白神明文字x5','纱绫神明文字x5',
-          '风香神明文字x5','歌原神明文字x5','30AP','60AP',
-          '初级经验书x5','中级经验书x10','高级经验书x3','特级经验书x1',
-          '信用点x5k','信用点x75k',
-        ].map((name, i) => (
-          <label key={i} className="flex items-center gap-2 text-sm text-ba-navy cursor-pointer">
-            <input type="checkbox"
-              checked={!!((arr('TacticalChallengeShopList', Array(14).fill(0)) as number[])[i])}
-              onChange={e => {
-                const l = [...(arr('TacticalChallengeShopList', Array(14).fill(0)) as number[])]
-                l[i] = e.target.checked ? 1 : 0
-                set('TacticalChallengeShopList', l)
-              }}
-              className="accent-ba-primary w-4 h-4"
-            />
-            {name}
-          </label>
-        ))}
+        {(() => {
+          const list = arr('TacticalChallengeShopList', Array(tacticalShopGoods.length || 14).fill(0)) as number[]
+          const count = Math.max(list.length, tacticalShopGoods.length || 14)
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Array.from({ length: count }).map((_, i) => {
+                const good = tacticalShopGoods[i]
+                const name = good?.[0] ?? `商品 ${i + 1}`
+                const price = good ? `${good[1]} 竞技币` : ''
+                return (
+                  <label key={i} className="flex items-start gap-2 text-sm text-ba-navy cursor-pointer">
+                    <input type="checkbox"
+                      checked={!!list[i]}
+                      onChange={e => {
+                        const l = [...list]
+                        while (l.length < count) l.push(0)
+                        l[i] = e.target.checked ? 1 : 0
+                        set('TacticalChallengeShopList', l)
+                      }}
+                      className="accent-ba-primary w-4 h-4 mt-0.5 shrink-0"
+                    />
+                    <span>
+                      <span className="block">{name}</span>
+                      {price && <span className="block text-xs text-ba-muted">{price}</span>}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          )
+        })()}
         <Row>
           <Field label="商店刷新次数" half>
             <input type="number" min="0" max="5" className="ba-input"
@@ -555,6 +770,20 @@ export default function Settings({
             </Field>
           ))}
         </Row>
+        <div className="border-t border-ba-border/40 pt-3 space-y-3">
+          {[1, 2, 3].slice(0, Math.max(1, Math.min(3, num('create_phase', 1)))).map(phase => (
+            <Field key={phase} label={`阶段 ${phase} 制造优先级`} hint="与原 GUI 一致，使用 > 分隔优先级">
+              <textarea
+                className="ba-input min-h-[96px]"
+                value={(arr(`createPriority_phase${phase}`) as string[]).join(' > ')}
+                onChange={e => set(
+                  `createPriority_phase${phase}`,
+                  e.target.value.split('>').map(s => s.trim()).filter(Boolean)
+                )}
+              />
+            </Field>
+          ))}
+        </div>
       </Section>
 
       {/* ── 日程课 ───────────────────────────────────────────────────── */}
@@ -667,9 +896,24 @@ export default function Settings({
         <Field label="选队方式">
           <select className="ba-select max-w-xs" value={str('choose_team_method', 'order')} onChange={e => set('choose_team_method', e.target.value)}>
             <option value="order">按属性顺序</option>
+            <option value="side">按侧栏属性编队</option>
             <option value="preset">使用预设编队</option>
           </select>
         </Field>
+        {str('choose_team_method', 'order') === 'side' && teamAttributeEditor('side_team_attribute', '侧栏属性顺序')}
+        {str('choose_team_method', 'order') === 'preset' && teamAttributeEditor('preset_team_attribute', '预设编队属性')}
+      </Section>
+
+      {/* ── 其他功能 ─────────────────────────────────────────────────── */}
+      <Section title="其他功能">
+        <div className="flex flex-wrap gap-2">
+          {runTaskButton('de_clothes', '一键反和谐')}
+          {stopTaskButton()}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <SwitchRow label="显示首页头图" hint="与原 GUI 一致，下次启动原 GUI 时生效" checked={bool('bannerVisibility', true)} onChange={v => set('bannerVisibility', v)} />
+          <SwitchRow label="资产显示" hint="保留原 GUI 资产面板配置" checked={bool('assetsVisibility', true)} onChange={v => set('assetsVisibility', v)} />
+        </div>
       </Section>
 
       {/* ── 启动选项 ─────────────────────────────────────────────────── */}

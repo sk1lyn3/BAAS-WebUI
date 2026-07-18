@@ -4,7 +4,7 @@ import Home from './pages/Home'
 import Scheduler from './pages/Scheduler'
 import Settings from './pages/Settings'
 import Logs from './pages/Logs'
-import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig } from './lib/types'
+import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction } from './lib/types'
 import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
 import { api, WS_URL } from './lib/api'
 
@@ -132,23 +132,53 @@ export default function App() {
   }, [connectWS, refreshTasks])
 
   // ── Start / Stop ────────────────────────────────────────────────────────
-  async function handleToggleRun() {
+  async function handleStartRun() {
     if (!serverOk) {
       addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端 (webui_server.py)，当前为 Demo 模式' })
       return
     }
-    if (runState === 'idle') {
-      setRunState('running')
-      const res = await api.start().catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
-      if (!res.ok) {
-        setRunState('idle')
-        addLog({ level: 'ERROR', time: now(), message: `启动失败: ${res.error ?? ''}` })
-      }
-    } else if (runState === 'running') {
-      setRunState('stopping')
-      await api.stop().catch(() => null)
-      setTimeout(() => setRunState('idle'), 800)
+    if (runState !== 'idle') return
+    setRunState('running')
+    setCurrentTask(null)
+    const res = await api.start(activeConfig).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      setRunState('idle')
+      addLog({ level: 'ERROR', time: now(), message: `启动失败: ${res.error ?? ''}` })
     }
+  }
+
+  async function handleStopRun() {
+    if (!serverOk || runState === 'idle') return
+    setRunState('stopping')
+    await api.stop().catch(() => null)
+    setCurrentTask(null)
+    setTimeout(() => setRunState('idle'), 800)
+  }
+
+  async function handleToggleRun() {
+    if (runState === 'idle') await handleStartRun()
+    else if (runState === 'running') await handleStopRun()
+  }
+
+  async function handleRunTask(task: string) {
+    if (!serverOk) {
+      addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端 (webui_server.py)，无法执行单次任务' })
+      return false
+    }
+    if (runState !== 'idle') {
+      addLog({ level: 'WARNING', time: now(), message: '已有任务在运行，请先停止当前任务' })
+      return false
+    }
+    setRunState('running')
+    setCurrentTask(task)
+    const res = await api.runTask(task).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      setRunState('idle')
+      setCurrentTask(null)
+      addLog({ level: 'ERROR', time: now(), message: `执行失败: ${res.error ?? ''}` })
+      return false
+    }
+    return true
   }
 
   // ── Task updates ────────────────────────────────────────────────────────
@@ -182,6 +212,11 @@ export default function App() {
     setConfig(prev => mapRawToConfig(raw, prev))
     if (!serverOk) return
     await api.putConfig({ ...raw, _configDir: activeConfig }).catch(() => null)
+  }
+
+  async function handleThenActionChange(action: ThenAction) {
+    const next = { ...rawConfig, then: action }
+    await handleSaveConfig(next)
   }
 
   async function handleSwitchConfig(name: string) {
@@ -229,9 +264,9 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-ba-bg">
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} {...configProps} />}
+        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
-        {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} onImport={handleImport} {...configProps} />}
+        {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
         {page === 'logs'      && <Logs logs={logs} />}
       </main>
     </div>

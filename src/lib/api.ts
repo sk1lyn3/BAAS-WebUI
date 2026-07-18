@@ -19,6 +19,7 @@ export const api = {
   putTasks:       (tasks: TaskConfig[])       => req('/api/tasks',         { method: 'PUT',  body: JSON.stringify(tasks) }),
   getConfig:      ()                          => req<Record<string, unknown>>('/api/config'),
   putConfig:      (cfg: Record<string, unknown>) => req('/api/config',     { method: 'PUT',  body: JSON.stringify(cfg) }),
+  getStaticConfig:()                          => req<Record<string, unknown>>('/api/static-config'),
   getConfigs:     ()                          => req<{ configs: string[]; active: string }>('/api/configs'),
   createConfig:   (name: string)              => req<{ ok: boolean; name: string }>('/api/configs', { method: 'POST', body: JSON.stringify({ name }) }),
   deleteConfig:   (name: string)              => req<{ ok: boolean }>(`/api/configs/${encodeURIComponent(name)}`, { method: 'DELETE' }),

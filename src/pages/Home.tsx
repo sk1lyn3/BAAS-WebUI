@@ -19,6 +19,8 @@ interface Props {
   logs: LogEntry[]
   onToggleRun: () => void
   serverOk: boolean
+  thenAction: ThenAction
+  onThenActionChange: (action: ThenAction) => void
   configList: string[]
   activeConfig: string
   onSwitchConfig: (name: string) => void
@@ -26,10 +28,9 @@ interface Props {
   onDeleteConfig: (name: string) => void
 }
 
-export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const logRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
-  const [thenAction, setThenAction] = useState<ThenAction>('无动作')
   const [showThen, setShowThen] = useState(false)
 
 
@@ -107,7 +108,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
                 {THEN_OPTIONS.map(opt => (
                   <button
                     key={opt}
-                    onClick={() => { setThenAction(opt); setShowThen(false) }}
+                    onClick={() => { onThenActionChange(opt); setShowThen(false) }}
                     className={cn(
                       'w-full text-left px-4 py-2 text-sm transition-colors',
                       opt === thenAction
@@ -165,4 +166,3 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
     </div>
   )
 }
-
