@@ -1,4 +1,4 @@
-import type { TaskConfig, DeviceConfig } from './types'
+import type { TaskConfig, DeviceConfig, HelpDoc } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const BASE = ((import.meta as any).env?.VITE_API_BASE as string | undefined) ?? ''
@@ -20,6 +20,7 @@ export const api = {
   getConfig:      ()                          => req<Record<string, unknown>>('/api/config'),
   putConfig:      (cfg: Record<string, unknown>) => req('/api/config',     { method: 'PUT',  body: JSON.stringify(cfg) }),
   getStaticConfig:()                          => req<Record<string, unknown>>('/api/static-config'),
+  getHelp:        (lang = 'zh_CN')            => req<{ docs: HelpDoc[] }>(`/api/help?lang=${encodeURIComponent(lang)}`),
   getConfigs:     ()                          => req<{ configs: string[]; active: string }>('/api/configs'),
   createConfig:   (name: string)              => req<{ ok: boolean; name: string }>('/api/configs', { method: 'POST', body: JSON.stringify({ name }) }),
   deleteConfig:   (name: string)              => req<{ ok: boolean }>(`/api/configs/${encodeURIComponent(name)}`, { method: 'DELETE' }),

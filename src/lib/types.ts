@@ -1,4 +1,4 @@
-export type Page = 'home' | 'scheduler' | 'settings' | 'logs'
+export type Page = 'home' | 'scheduler' | 'settings' | 'help' | 'logs'
 export type Server = 'CN' | 'JP' | 'Global'
 export type ScreenshotMethod = 'scrcpy' | 'virtual_scrcpy' | 'uiautomator2' | 'adb'
 export type ThenAction = '无动作' | '退出 Baas' | '退出 模拟器' | '退出 Baas 和 模拟器' | '关机'
@@ -8,6 +8,11 @@ export type RunState = 'idle' | 'running' | 'stopping'
 export interface ActivityInfo {
   name: string
   stages: Record<string, unknown>
+}
+
+export interface HelpDoc {
+  title: string
+  content: string
 }
 
 export interface LogEntry {

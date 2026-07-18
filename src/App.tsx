@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import Home from './pages/Home'
 import Scheduler from './pages/Scheduler'
 import Settings from './pages/Settings'
+import Help from './pages/Help'
 import Logs from './pages/Logs'
 import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction } from './lib/types'
 import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
@@ -267,6 +268,7 @@ export default function App() {
         {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
+        {page === 'help'      && <Help />}
         {page === 'logs'      && <Logs logs={logs} />}
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { Home, Clock, Settings, ScrollText, Zap } from 'lucide-react'
+import { Home, Clock, Settings, ScrollText, Zap, CircleHelp } from 'lucide-react'
 import type { Page } from '../lib/types'
 import { cn } from '../lib/utils'
 
@@ -6,6 +6,7 @@ const NAV = [
   { id: 'home',      label: '主页',   icon: Home       },
   { id: 'scheduler', label: '调度',   icon: Clock      },
   { id: 'settings',  label: '设置',   icon: Settings   },
+  { id: 'help',      label: '帮助',   icon: CircleHelp },
   { id: 'logs',      label: '日志',   icon: ScrollText },
 ] as const
 

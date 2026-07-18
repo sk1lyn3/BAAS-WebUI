@@ -47,3 +47,26 @@ body {
 .log-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
 .log-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
 .log-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+.help-doc p { margin: 0.55rem 0; line-height: 1.65; }
+.help-doc pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.65;
+  font-family: inherit;
+  margin: 0.5rem 0;
+}
+.help-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+.help-doc td,
+.help-doc th {
+  border: 1px solid #D1E9F7;
+  padding: 0.45rem 0.6rem;
+}
+.help-doc [style*="background-color: #f1c40f"],
+.help-doc [style*="background-color:#f1c40f"] {
+  background-color: #FEF3A3 !important;
+}
