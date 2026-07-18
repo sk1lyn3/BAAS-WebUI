@@ -5,6 +5,13 @@ export type ThenAction = '无动作' | '退出 Baas' | '退出 模拟器' | '退
 export type LogLevel = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
 export type RunState = 'idle' | 'running' | 'stopping'
 
+export interface VirtualDisplayStatus {
+  running: boolean
+  starting: boolean
+  displayId: number | null
+  configDir: string | null
+}
+
 export interface ActivityInfo {
   name: string
   stages: Record<string, unknown>

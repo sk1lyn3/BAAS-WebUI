@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
-import { Play, Square, Sword, ChevronDown } from 'lucide-react'
-import type { LogEntry, RunState, ThenAction } from '../lib/types'
+import { Play, Square, Sword, ChevronDown, MonitorUp, MonitorX } from 'lucide-react'
+import type { LogEntry, RunState, ThenAction, VirtualDisplayStatus, ScreenshotMethod } from '../lib/types'
 import { cn } from '../lib/utils'
 import ConfigSwitcher from '../components/ConfigSwitcher'
 
@@ -19,6 +19,10 @@ interface Props {
   logs: LogEntry[]
   onToggleRun: () => void
   serverOk: boolean
+  virtualDisplay: VirtualDisplayStatus
+  screenshotMethod: ScreenshotMethod
+  onStartVirtualDisplay: () => void
+  onStopVirtualDisplay: () => void
   thenAction: ThenAction
   onThenActionChange: (action: ThenAction) => void
   configList: string[]
@@ -28,7 +32,7 @@ interface Props {
   onDeleteConfig: (name: string) => void
 }
 
-export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, virtualDisplay, screenshotMethod, onStartVirtualDisplay, onStopVirtualDisplay, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const logRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showThen, setShowThen] = useState(false)
@@ -42,6 +46,9 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
 
   const isRunning = runState === 'running'
   const isStopping = runState === 'stopping'
+  const usesVirtualScrcpy = screenshotMethod === 'virtual_scrcpy'
+  const virtualReady = virtualDisplay.running
+  const virtualStarting = virtualDisplay.starting
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5">
@@ -75,12 +82,52 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
+        {usesVirtualScrcpy && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ba-border bg-white px-2 py-2 shadow-sm">
+            <button
+              onClick={onStartVirtualDisplay}
+              disabled={!serverOk || virtualReady || virtualStarting || isRunning || isStopping}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95',
+                virtualReady
+                  ? 'bg-ba-pale text-ba-primary'
+                  : virtualStarting
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-ba-navy text-white hover:bg-slate-700'
+              )}
+            >
+              <MonitorUp size={15} strokeWidth={2.4} />
+              {virtualReady ? '虚拟屏幕已启动' : virtualStarting ? '启动中...' : '启动虚拟屏幕'}
+            </button>
+            <button
+              onClick={onStopVirtualDisplay}
+              disabled={!serverOk || !virtualReady || isRunning || isStopping}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border transition-all active:scale-95',
+                virtualReady && !isRunning && !isStopping
+                  ? 'border-ba-border text-ba-muted hover:text-ba-error hover:border-red-200 hover:bg-red-50'
+                  : 'border-gray-100 text-gray-300 cursor-not-allowed'
+              )}
+            >
+              <MonitorX size={15} strokeWidth={2.4} />
+              关闭虚拟屏幕
+            </button>
+            <span className="px-2 text-[11px] text-ba-muted tabular-nums">
+              {virtualReady
+                ? `Display ${virtualDisplay.displayId ?? '-'}`
+                : virtualStarting
+                ? '创建中'
+                : '未启动'}
+            </span>
+          </div>
+        )}
+
         <button
           onClick={onToggleRun}
-          disabled={isStopping}
+          disabled={isStopping || (usesVirtualScrcpy && !virtualReady)}
           className={cn(
             'flex items-center gap-2.5 font-semibold px-8 py-3 rounded-xl transition-all duration-150 active:scale-95 select-none text-sm shadow-sm',
-            isStopping
+            isStopping || (usesVirtualScrcpy && !virtualReady)
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
               : isRunning
               ? 'bg-ba-error hover:bg-red-500 text-white shadow-red-100'

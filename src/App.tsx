@@ -5,7 +5,7 @@ import Scheduler from './pages/Scheduler'
 import Settings from './pages/Settings'
 import Help from './pages/Help'
 import Logs from './pages/Logs'
-import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction } from './lib/types'
+import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction, VirtualDisplayStatus } from './lib/types'
 import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
 import { api, WS_URL } from './lib/api'
 
@@ -15,6 +15,13 @@ const SERVER_REVERSE: Record<string, DeviceConfig['server']> = {
   '官服': 'CN', 'B服': 'CN',
   '国际服': 'Global', '国际服青少年': 'Global', '韩国ONE': 'Global', 'Steam国际服': 'Global',
   '日服': 'JP', '日服PC端': 'JP',
+}
+
+const INITIAL_VIRTUAL_DISPLAY: VirtualDisplayStatus = {
+  running: false,
+  starting: false,
+  displayId: null,
+  configDir: null,
 }
 
 function mapRawToConfig(raw: Record<string, unknown>, prev: DeviceConfig): DeviceConfig {
@@ -53,6 +60,7 @@ export default function App() {
   const [serverOk, setServerOk]       = useState(false)
   const [configList, setConfigList]   = useState<string[]>(['default'])
   const [activeConfig, setActiveConfig] = useState<string>('default')
+  const [virtualDisplay, setVirtualDisplay] = useState<VirtualDisplayStatus>(INITIAL_VIRTUAL_DISPLAY)
 
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -75,6 +83,7 @@ export default function App() {
           if (typeof d.running === 'boolean')
             setRunState(d.running ? 'running' : 'idle')
           if ('currentTask' in d) setCurrentTask(d.currentTask ?? null)
+          if (d.virtualDisplay) setVirtualDisplay({ ...INITIAL_VIRTUAL_DISPLAY, ...d.virtualDisplay })
         } else if (msg.type === 'log' && msg.data) {
           addLog(msg.data)
         } else if (msg.type === 'history' && Array.isArray(msg.data)) {
@@ -124,6 +133,7 @@ export default function App() {
     api.getStatus().then(s => {
       setRunState(s.running ? 'running' : 'idle')
       setCurrentTask((s.currentTask as string | null) ?? null)
+      if (s.virtualDisplay) setVirtualDisplay({ ...INITIAL_VIRTUAL_DISPLAY, ...(s.virtualDisplay as Partial<VirtualDisplayStatus>) })
     }).catch(() => {/* use mock */})
 
     // Poll tasks every 30s to pick up next_tick updates from running BAAS
@@ -139,6 +149,10 @@ export default function App() {
       return
     }
     if (runState !== 'idle') return
+    if (config.screenshotMethod === 'virtual_scrcpy' && !virtualDisplay.running) {
+      addLog({ level: 'WARNING', time: now(), message: '请先启动虚拟屏幕' })
+      return
+    }
     setRunState('running')
     setCurrentTask(null)
     const res = await api.start(activeConfig).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
@@ -156,6 +170,38 @@ export default function App() {
     setTimeout(() => setRunState('idle'), 800)
   }
 
+  async function handleStartVirtualDisplay() {
+    if (!serverOk) {
+      addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端，无法启动虚拟屏幕' })
+      return
+    }
+    if (config.screenshotMethod !== 'virtual_scrcpy') {
+      addLog({ level: 'WARNING', time: now(), message: '当前截图方式不是 virtual_scrcpy' })
+      return
+    }
+    if (virtualDisplay.running || virtualDisplay.starting) return
+    setVirtualDisplay(prev => ({ ...prev, starting: true, configDir: activeConfig }))
+    const res = await api.startVirtualDisplay(activeConfig).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      setVirtualDisplay(prev => ({ ...prev, starting: false }))
+      addLog({ level: 'ERROR', time: now(), message: `启动虚拟屏幕失败: ${res.error ?? ''}` })
+    }
+  }
+
+  async function handleStopVirtualDisplay() {
+    if (!serverOk) return
+    if (runState !== 'idle') {
+      addLog({ level: 'WARNING', time: now(), message: '请先停止当前任务，再关闭虚拟屏幕' })
+      return
+    }
+    const res = await api.stopVirtualDisplay().catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      addLog({ level: 'ERROR', time: now(), message: `关闭虚拟屏幕失败: ${res.error ?? ''}` })
+    } else {
+      setVirtualDisplay(INITIAL_VIRTUAL_DISPLAY)
+    }
+  }
+
   async function handleToggleRun() {
     if (runState === 'idle') await handleStartRun()
     else if (runState === 'running') await handleStopRun()
@@ -168,6 +214,10 @@ export default function App() {
     }
     if (runState !== 'idle') {
       addLog({ level: 'WARNING', time: now(), message: '已有任务在运行，请先停止当前任务' })
+      return false
+    }
+    if (config.screenshotMethod === 'virtual_scrcpy' && !virtualDisplay.running) {
+      addLog({ level: 'WARNING', time: now(), message: '请先启动虚拟屏幕' })
       return false
     }
     setRunState('running')
@@ -265,7 +315,7 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-ba-bg">
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} {...configProps} />}
+        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
         {page === 'help'      && <Help />}
