@@ -219,6 +219,27 @@ export default function App() {
     }
   }
 
+  async function handleWakeDevice() {
+    if (!serverOk) {
+      addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端，无法唤醒设备' })
+      return
+    }
+    if (config.screenshotMethod !== 'virtual_scrcpy') {
+      addLog({ level: 'WARNING', time: now(), message: '当前截图方式不是 virtual_scrcpy' })
+      return
+    }
+    if (!virtualDisplay.running) {
+      addLog({ level: 'WARNING', time: now(), message: '请先启动虚拟屏幕' })
+      return
+    }
+    const res = await api.wakeUnlockScreenOff().catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      addLog({ level: 'ERROR', time: now(), message: `唤醒设备失败: ${res.error ?? ''}` })
+    } else {
+      addLog({ level: 'INFO', time: now(), message: '已唤醒设备并关闭物理屏幕' })
+    }
+  }
+
   async function handleToggleRun() {
     if (runState === 'idle') await handleStartRun()
     else if (runState === 'running') await handleStopRun()
@@ -332,7 +353,7 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-ba-bg">
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} themeMode={themeMode} onThemeChange={setThemeMode} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} {...configProps} />}
+        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} onWakeDevice={handleWakeDevice} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
         {page === 'help'      && <Help />}

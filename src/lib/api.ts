@@ -36,6 +36,7 @@ export const api = {
   stop:           ()                          => req('/api/stop',           { method: 'POST' }),
   startVirtualDisplay: (configDir?: string)   => req<{ ok: boolean; error?: string }>('/api/virtual-display/start', { method: 'POST', body: JSON.stringify({ configDir }) }),
   stopVirtualDisplay:  ()                     => req<{ ok: boolean; error?: string }>('/api/virtual-display/stop',  { method: 'POST' }),
+  wakeUnlockScreenOff: ()                     => req<{ ok: boolean; error?: string }>('/api/virtual-display/wake-unlock-screen-off', { method: 'POST' }),
   adbConnect:     (serial: string)            => req<{ ok: boolean; output?: string; error?: string }>(
     '/api/adb/connect', { method: 'POST', body: JSON.stringify({ serial }) }
   ),

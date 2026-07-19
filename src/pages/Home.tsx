@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { Play, Square, Sword, ChevronDown, MonitorUp, MonitorX } from 'lucide-react'
+import { Play, Square, Sword, ChevronDown, MonitorUp, MonitorX, Power } from 'lucide-react'
 import type { LogEntry, RunState, ThenAction, VirtualDisplayStatus, ScreenshotMethod } from '../lib/types'
 import { cn } from '../lib/utils'
 import ConfigSwitcher from '../components/ConfigSwitcher'
@@ -23,6 +23,7 @@ interface Props {
   screenshotMethod: ScreenshotMethod
   onStartVirtualDisplay: () => void
   onStopVirtualDisplay: () => void
+  onWakeDevice: () => void
   thenAction: ThenAction
   onThenActionChange: (action: ThenAction) => void
   configList: string[]
@@ -32,7 +33,7 @@ interface Props {
   onDeleteConfig: (name: string) => void
 }
 
-export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, virtualDisplay, screenshotMethod, onStartVirtualDisplay, onStopVirtualDisplay, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, virtualDisplay, screenshotMethod, onStartVirtualDisplay, onStopVirtualDisplay, onWakeDevice, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const logRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showThen, setShowThen] = useState(false)
@@ -111,6 +112,19 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
             >
               <MonitorX size={15} strokeWidth={2.4} />
               关闭虚拟屏幕
+            </button>
+            <button
+              onClick={onWakeDevice}
+              disabled={!serverOk || !virtualReady || virtualStarting}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border transition-all active:scale-95',
+                serverOk && virtualReady && !virtualStarting
+                  ? 'border-ba-primary/35 bg-ba-primary/10 text-ba-primary hover:bg-ba-primary/20'
+                  : 'border-ba-border/60 text-ba-muted/50 cursor-not-allowed'
+              )}
+            >
+              <Power size={15} strokeWidth={2.4} />
+              唤醒设备
             </button>
             <span className="px-2 text-[11px] text-ba-muted tabular-nums">
               {virtualReady
