@@ -83,7 +83,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         {usesVirtualScrcpy && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ba-border bg-white px-2 py-2 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ba-border bg-ba-card px-2 py-2 shadow-sm">
             <button
               onClick={onStartVirtualDisplay}
               disabled={!serverOk || virtualReady || virtualStarting || isRunning || isStopping}
@@ -92,8 +92,8 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
                 virtualReady
                   ? 'bg-ba-pale text-ba-primary'
                   : virtualStarting
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-ba-navy text-white hover:bg-slate-700'
+                  ? 'bg-ba-bg text-ba-muted/60 cursor-not-allowed'
+                  : 'bg-slate-800 text-white hover:bg-slate-700 dark:border dark:border-ba-primary/35 dark:bg-ba-primary/15 dark:text-ba-primary dark:hover:bg-ba-primary/25'
               )}
             >
               <MonitorUp size={15} strokeWidth={2.4} />
@@ -105,8 +105,8 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border transition-all active:scale-95',
                 virtualReady && !isRunning && !isStopping
-                  ? 'border-ba-border text-ba-muted hover:text-ba-error hover:border-red-200 hover:bg-red-50'
-                  : 'border-gray-100 text-gray-300 cursor-not-allowed'
+                  ? 'border-ba-border text-ba-muted hover:text-ba-error hover:border-ba-error/40 hover:bg-red-500/10'
+                  : 'border-ba-border/60 text-ba-muted/50 cursor-not-allowed'
               )}
             >
               <MonitorX size={15} strokeWidth={2.4} />
@@ -128,9 +128,9 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
           className={cn(
             'flex items-center gap-2.5 font-semibold px-8 py-3 rounded-xl transition-all duration-150 active:scale-95 select-none text-sm shadow-sm',
             isStopping || (usesVirtualScrcpy && !virtualReady)
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              ? 'bg-ba-border/60 text-ba-muted/60 cursor-not-allowed'
               : isRunning
-              ? 'bg-ba-error hover:bg-red-500 text-white shadow-red-100'
+              ? 'bg-ba-error hover:bg-red-500 text-white shadow-sm'
               : 'bg-ba-primary hover:bg-ba-hover text-white shadow-ba-pale'
           )}
         >
@@ -142,7 +142,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
         <div className="relative">
           <button
             onClick={() => setShowThen(v => !v)}
-            className="flex items-center gap-2 text-sm text-ba-muted hover:text-ba-navy border border-ba-border rounded-lg px-3 py-2.5 bg-white hover:bg-ba-pale transition-all"
+            className="flex items-center gap-2 text-sm text-ba-muted hover:text-ba-navy border border-ba-border rounded-lg px-3 py-2.5 bg-ba-card hover:bg-ba-pale transition-all"
           >
             <Sword size={13} />
             完成后：<span className="text-ba-navy font-medium">{thenAction}</span>
@@ -151,7 +151,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
           {showThen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowThen(false)} />
-              <div className="absolute top-full left-0 mt-1 bg-white border border-ba-border rounded-xl shadow-xl z-20 py-1 min-w-max overflow-hidden">
+              <div className="absolute top-full left-0 mt-1 bg-ba-card border border-ba-border rounded-xl shadow-xl z-20 py-1 min-w-max overflow-hidden">
                 {THEN_OPTIONS.map(opt => (
                   <button
                     key={opt}

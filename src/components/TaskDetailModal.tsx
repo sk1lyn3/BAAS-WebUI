@@ -40,7 +40,7 @@ export default function TaskDetailModal({ task, allTasks, onSave, onClose }: Pro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="relative bg-ba-card rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ba-border">
           <div>
@@ -143,7 +143,7 @@ export default function TaskDetailModal({ task, allTasks, onSave, onClose }: Pro
                         'text-xs px-2.5 py-1 rounded-full border transition-all',
                         selected
                           ? 'bg-ba-primary text-white border-ba-primary'
-                          : 'bg-white text-ba-muted border-ba-border hover:border-ba-primary hover:text-ba-primary'
+                          : 'bg-ba-card text-ba-muted border-ba-border hover:border-ba-primary hover:text-ba-primary'
                       )}
                     >
                       {t.event_name}
@@ -159,7 +159,7 @@ export default function TaskDetailModal({ task, allTasks, onSave, onClose }: Pro
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-ba-border bg-gray-50/50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-ba-border bg-ba-bg/60">
           <button onClick={onClose} className="ba-btn-ghost text-sm">取消</button>
           <button onClick={handleSave} className="ba-btn-primary text-sm">保存</button>
         </div>

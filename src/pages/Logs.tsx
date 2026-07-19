@@ -122,7 +122,7 @@ export default function Logs({ logs }: Props) {
                 'text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all',
                 levelFilter.has(l)
                   ? BADGE_STYLE[l]
-                  : 'border-ba-border text-ba-muted/50 bg-white opacity-50'
+                  : 'border-ba-border text-ba-muted/50 bg-ba-card opacity-50'
               )}
             >
               {l} {counts[l] ? `(${counts[l]})` : ''}

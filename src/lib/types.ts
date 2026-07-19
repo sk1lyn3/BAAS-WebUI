@@ -4,6 +4,7 @@ export type ScreenshotMethod = 'scrcpy' | 'virtual_scrcpy' | 'uiautomator2' | 'a
 export type ThenAction = '无动作' | '退出 Baas' | '退出 模拟器' | '退出 Baas 和 模拟器' | '关机'
 export type LogLevel = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
 export type RunState = 'idle' | 'running' | 'stopping'
+export type ThemeMode = 'system' | 'light' | 'dark'
 
 export interface VirtualDisplayStatus {
   running: boolean

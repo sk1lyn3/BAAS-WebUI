@@ -24,24 +24,24 @@ interface Props {
 }
 
 const TAG_MAP: Record<string, { label: string; color: string }> = {
-  cafe_reward:              { label: '咖啡厅', color: 'bg-pink-100 text-pink-600' },
-  group:                    { label: '社团',   color: 'bg-green-100 text-green-600' },
-  lesson:                   { label: '日程',   color: 'bg-purple-100 text-purple-600' },
-  collect_reward:           { label: '奖励',   color: 'bg-ba-yellow-pale text-amber-600' },
-  mail:                     { label: '邮箱',   color: 'bg-sky-100 text-sky-600' },
-  arena:                    { label: '竞技',   color: 'bg-red-100 text-red-600' },
-  common_shop:              { label: '商店',   color: 'bg-indigo-100 text-indigo-600' },
-  tactical_challenge_shop:  { label: '商店',   color: 'bg-indigo-100 text-indigo-600' },
-  create:                   { label: '制造',   color: 'bg-orange-100 text-orange-600' },
-  rewarded_task:            { label: '通缉',   color: 'bg-red-100 text-red-600' },
+  cafe_reward:              { label: '咖啡厅', color: 'bg-pink-100 text-pink-600 dark:bg-pink-500/15 dark:text-pink-300' },
+  group:                    { label: '社团',   color: 'bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-300' },
+  lesson:                   { label: '日程',   color: 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300' },
+  collect_reward:           { label: '奖励',   color: 'bg-ba-yellow-pale text-amber-600 dark:text-amber-300' },
+  mail:                     { label: '邮箱',   color: 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300' },
+  arena:                    { label: '竞技',   color: 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300' },
+  common_shop:              { label: '商店',   color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300' },
+  tactical_challenge_shop:  { label: '商店',   color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300' },
+  create:                   { label: '制造',   color: 'bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300' },
+  rewarded_task:            { label: '通缉',   color: 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-300' },
   total_assault:            { label: '总力战', color: 'bg-ba-pale text-ba-primary' },
-  scrimmage:                { label: '交流会', color: 'bg-teal-100 text-teal-600' },
-  joint_firing_drill:       { label: '演习',   color: 'bg-orange-100 text-orange-600' },
-  activity_sweep:           { label: '活动',   color: 'bg-fuchsia-100 text-fuchsia-600' },
+  scrimmage:                { label: '交流会', color: 'bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300' },
+  joint_firing_drill:       { label: '演习',   color: 'bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300' },
+  activity_sweep:           { label: '活动',   color: 'bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-500/15 dark:text-fuchsia-300' },
 }
 
 function getTag(func_name: string) {
-  return TAG_MAP[func_name] || { label: '其他', color: 'bg-gray-100 text-gray-500' }
+  return TAG_MAP[func_name] || { label: '其他', color: 'bg-ba-pale text-ba-muted' }
 }
 
 function tsToLocal(ts: number): string {
@@ -176,7 +176,7 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshA
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="flex rounded-lg border border-ba-border bg-white overflow-hidden">
+        <div className="flex rounded-lg border border-ba-border bg-ba-card overflow-hidden">
           {(['all', 'enabled', 'disabled'] as const).map(f => (
             <button
               key={f}
@@ -192,7 +192,7 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshA
         </div>
         <button
           onClick={() => setSortMode(m => m === 'priority' ? 'next_tick' : 'priority')}
-          className="flex items-center gap-1.5 text-xs text-ba-muted hover:text-ba-primary border border-ba-border rounded-lg px-3 py-1.5 bg-white hover:bg-ba-pale transition-all"
+          className="flex items-center gap-1.5 text-xs text-ba-muted hover:text-ba-primary border border-ba-border rounded-lg px-3 py-1.5 bg-ba-card hover:bg-ba-pale transition-all"
         >
           <ArrowUpDown size={12} />
           {sortMode === 'priority' ? '按优先级' : '按执行时间'}

@@ -220,7 +220,7 @@ export default function Settings({
           'px-4 py-2 rounded-lg text-sm font-medium border transition-all',
           runState === 'stopping'
             ? 'border-ba-border text-ba-border cursor-not-allowed'
-            : 'border-ba-error text-ba-error hover:bg-red-50'
+            : 'border-ba-error text-ba-error hover:bg-red-500/10'
         )}
       >
         {runState === 'stopping' ? '停止中...' : '停止当前任务'}

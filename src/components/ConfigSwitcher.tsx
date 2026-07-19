@@ -38,7 +38,7 @@ export default function ConfigSwitcher({ configList, activeConfig, onSwitchConfi
     <div className={cn('relative', className)}>
       <button
         onClick={() => { setShowMenu(v => !v); setShowNewInput(false); setConfirmDelete(null) }}
-        className="flex items-center gap-1.5 text-xs text-ba-muted hover:text-ba-navy border border-ba-border rounded-md px-2.5 py-1 bg-white hover:bg-ba-pale transition-all"
+        className="flex items-center gap-1.5 text-xs text-ba-muted hover:text-ba-navy border border-ba-border rounded-md px-2.5 py-1 bg-ba-card hover:bg-ba-pale transition-all"
       >
         配置: <span className="font-medium text-ba-navy">{activeConfig}</span>
         <ChevronDown size={11} className={cn('transition-transform', showMenu && 'rotate-180')} />
@@ -47,7 +47,7 @@ export default function ConfigSwitcher({ configList, activeConfig, onSwitchConfi
       {showMenu && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => { setShowMenu(false); setConfirmDelete(null) }} />
-          <div className="absolute top-full left-0 mt-1 bg-white border border-ba-border rounded-xl shadow-xl z-20 py-1 min-w-[180px] overflow-hidden">
+          <div className="absolute top-full left-0 mt-1 bg-ba-card border border-ba-border rounded-xl shadow-xl z-20 py-1 min-w-[180px] overflow-hidden">
             {configList.map(name => (
               <div key={name} className="group flex items-center">
                 <button
@@ -66,7 +66,7 @@ export default function ConfigSwitcher({ configList, activeConfig, onSwitchConfi
                     className={cn(
                       'mr-2 p-1 rounded transition-colors shrink-0',
                       confirmDelete === name
-                        ? 'text-ba-error bg-red-50'
+                        ? 'text-ba-error bg-red-500/10'
                         : 'text-ba-border hover:text-ba-error opacity-0 group-hover:opacity-100'
                     )}
                   >

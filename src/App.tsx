@@ -5,7 +5,7 @@ import Scheduler from './pages/Scheduler'
 import Settings from './pages/Settings'
 import Help from './pages/Help'
 import Logs from './pages/Logs'
-import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction, VirtualDisplayStatus } from './lib/types'
+import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction, VirtualDisplayStatus, ThemeMode } from './lib/types'
 import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
 import { api, WS_URL } from './lib/api'
 
@@ -61,8 +61,25 @@ export default function App() {
   const [configList, setConfigList]   = useState<string[]>(['default'])
   const [activeConfig, setActiveConfig] = useState<string>('default')
   const [virtualDisplay, setVirtualDisplay] = useState<VirtualDisplayStatus>(INITIAL_VIRTUAL_DISPLAY)
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem('baas-theme')
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+  })
 
   const wsRef = useRef<WebSocket | null>(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyTheme = () => {
+      const dark = themeMode === 'dark' || (themeMode === 'system' && media.matches)
+      document.documentElement.classList.toggle('dark', dark)
+    }
+    localStorage.setItem('baas-theme', themeMode)
+    applyTheme()
+    if (themeMode !== 'system') return
+    media.addEventListener('change', applyTheme)
+    return () => media.removeEventListener('change', applyTheme)
+  }, [themeMode])
 
   // ── Append log entries ──────────────────────────────────────────────────
   const addLog = useCallback((entry: Omit<LogEntry, 'id'>) => {
@@ -313,7 +330,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-ba-bg">
-      <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} />
+      <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} themeMode={themeMode} onThemeChange={setThemeMode} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}

@@ -1,5 +1,5 @@
-import { Home, Clock, Settings, ScrollText, Zap, CircleHelp } from 'lucide-react'
-import type { Page } from '../lib/types'
+import { Home, Clock, Settings, ScrollText, Zap, CircleHelp, Monitor, Moon, Sun } from 'lucide-react'
+import type { Page, ThemeMode } from '../lib/types'
 import { cn } from '../lib/utils'
 
 const NAV = [
@@ -16,9 +16,17 @@ interface Props {
   running: boolean
   currentTask: string | null
   serverOk: boolean
+  themeMode: ThemeMode
+  onThemeChange: (mode: ThemeMode) => void
 }
 
-export default function Sidebar({ page, onNav, running, currentTask, serverOk }: Props) {
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: typeof Monitor }[] = [
+  { mode: 'system', label: '系统', icon: Monitor },
+  { mode: 'light',  label: '浅色', icon: Sun },
+  { mode: 'dark',   label: '深色', icon: Moon },
+]
+
+export default function Sidebar({ page, onNav, running, currentTask, serverOk, themeMode, onThemeChange }: Props) {
   return (
     <>
       {/* ── 桌面左侧栏 ── */}
@@ -60,6 +68,24 @@ export default function Sidebar({ page, onNav, running, currentTask, serverOk }:
 
         {/* Status footer */}
         <div className="px-4 py-4 border-t border-ba-border">
+          <div className="mb-4 grid grid-cols-3 rounded-lg border border-ba-border bg-ba-bg/70 p-1">
+            {THEME_OPTIONS.map(({ mode, label, icon: Icon }) => (
+              <button
+                key={mode}
+                title={`主题：${label}`}
+                onClick={() => onThemeChange(mode)}
+                className={cn(
+                  'flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-all',
+                  themeMode === mode
+                    ? 'bg-ba-card text-ba-primary shadow-sm'
+                    : 'text-ba-muted hover:text-ba-navy hover:bg-ba-card/70'
+                )}
+              >
+                <Icon size={12} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-2 mb-2">
             <span className={cn(
               'w-2 h-2 rounded-full shrink-0',
@@ -98,6 +124,13 @@ export default function Sidebar({ page, onNav, running, currentTask, serverOk }:
             )}
           </button>
         ))}
+        <button
+          onClick={() => onThemeChange(themeMode === 'dark' ? 'system' : themeMode === 'system' ? 'light' : 'dark')}
+          className="relative flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-ba-muted transition-colors"
+        >
+          {themeMode === 'dark' ? <Moon size={20} /> : themeMode === 'light' ? <Sun size={20} /> : <Monitor size={20} />}
+          主题
+        </button>
       </nav>
     </>
   )

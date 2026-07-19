@@ -1,32 +1,33 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
         ba: {
-          primary:   '#3B9EDB',
-          hover:     '#2D8BC4',
-          pale:      '#E8F4FD',
-          pale2:     '#D1E9F7',
-          navy:      '#1B2A3B',
-          muted:     '#64748B',
-          border:    '#D1E9F7',
-          yellow:    '#F5C842',
-          'yellow-pale': '#FEF9E7',
-          bg:        '#F0F7FD',
-          card:      '#FFFFFF',
-          success:   '#22C55E',
-          error:     '#EF4444',
-          warning:   '#F59E0B',
+          primary:   'rgb(var(--ba-primary) / <alpha-value>)',
+          hover:     'rgb(var(--ba-hover) / <alpha-value>)',
+          pale:      'rgb(var(--ba-pale) / <alpha-value>)',
+          pale2:     'rgb(var(--ba-pale2) / <alpha-value>)',
+          navy:      'rgb(var(--ba-navy) / <alpha-value>)',
+          muted:     'rgb(var(--ba-muted) / <alpha-value>)',
+          border:    'rgb(var(--ba-border) / <alpha-value>)',
+          yellow:    'rgb(var(--ba-yellow) / <alpha-value>)',
+          'yellow-pale': 'rgb(var(--ba-yellow-pale) / <alpha-value>)',
+          bg:        'rgb(var(--ba-bg) / <alpha-value>)',
+          card:      'rgb(var(--ba-card) / <alpha-value>)',
+          success:   'rgb(var(--ba-success) / <alpha-value>)',
+          error:     'rgb(var(--ba-error) / <alpha-value>)',
+          warning:   'rgb(var(--ba-warning) / <alpha-value>)',
         }
       },
       fontFamily: {
         mono: ['Consolas', 'Monaco', 'Courier New', 'monospace'],
       },
       boxShadow: {
-        card: '0 1px 4px 0 rgba(59,158,219,0.08), 0 0 0 1px rgba(209,233,247,0.8)',
-        'card-hover': '0 4px 16px 0 rgba(59,158,219,0.15), 0 0 0 1px rgba(59,158,219,0.2)',
+        card: 'var(--ba-shadow-card)',
+        'card-hover': 'var(--ba-shadow-card-hover)',
       }
     }
   },
