@@ -57,6 +57,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
   }, [logs, autoScroll])
 
   useEffect(() => {
+    if (configList.length === 0) return
     setManagedConfigs(prev => {
       const filtered = prev.filter(name => configList.includes(name))
       const next = filtered.length > 0 ? filtered : (activeConfig ? [activeConfig] : [])

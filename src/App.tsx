@@ -66,8 +66,8 @@ export default function App() {
   const [config, setConfig]           = useState<DeviceConfig>(INITIAL_CONFIG)
   const [rawConfig, setRawConfig]     = useState<Record<string, unknown>>({})
   const [serverOk, setServerOk]       = useState(false)
-  const [configList, setConfigList]   = useState<string[]>(['default'])
-  const [activeConfig, setActiveConfig] = useState<string>('default')
+  const [configList, setConfigList]   = useState<string[]>([])
+  const [activeConfig, setActiveConfig] = useState<string>('')
   const [virtualDisplay, setVirtualDisplay] = useState<VirtualDisplayStatus>(INITIAL_VIRTUAL_DISPLAY)
   const [managedMode, setManagedMode] = useState<ManagedModeStatus>(INITIAL_MANAGED_MODE)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
