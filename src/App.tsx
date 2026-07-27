@@ -289,6 +289,13 @@ export default function App() {
     if (serverOk) api.putTasks(next).catch(() => null)
   }
 
+  function handlePostponeAll() {
+    const nextTick = nextRefreshTimestamp()
+    const next = tasks.map(t => ({ ...t, next_tick: nextTick }))
+    setTasks(next)
+    if (serverOk) api.putTasks(next).catch(() => null)
+  }
+
   function handleToggleAll(enabled: boolean) {
     const next = tasks.map(t => ({ ...t, enabled }))
     setTasks(next)
@@ -354,7 +361,7 @@ export default function App() {
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} themeMode={themeMode} onThemeChange={setThemeMode} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} onWakeDevice={handleWakeDevice} {...configProps} />}
-        {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
+        {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onPostponeAll={handlePostponeAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
         {page === 'help'      && <Help />}
         {page === 'logs'      && <Logs logs={logs} />}
@@ -366,5 +373,11 @@ export default function App() {
 function now() {
   const d = new Date()
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+function nextRefreshTimestamp() {
+  const d = new Date()
+  d.setHours(4, 0, 0, 0)
+  if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1)
+  return Math.floor(d.getTime() / 1000)
 }
 function pad(n: number) { return String(n).padStart(2, '0') }

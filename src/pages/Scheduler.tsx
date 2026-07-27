@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Settings2, RefreshCw, ArrowUpDown, GripVertical, Zap, Pencil } from 'lucide-react'
+import { Settings2, RefreshCw, ArrowUpDown, GripVertical, Zap, Pencil, CalendarClock } from 'lucide-react'
 import type { TaskConfig } from '../lib/types'
 import Toggle from '../components/Toggle'
 import TaskDetailModal from '../components/TaskDetailModal'
@@ -14,6 +14,7 @@ interface Props {
   onUpdateTask: (updated: TaskConfig) => void
   onToggleAll: (enabled: boolean) => void
   onRefreshAll: () => void
+  onPostponeAll: () => void
   onReorderTasks: (reordered: TaskConfig[]) => void
   serverOk: boolean
   configList: string[]
@@ -50,7 +51,7 @@ function tsToLocal(ts: number): string {
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshAll, onReorderTasks, serverOk, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshAll, onPostponeAll, onReorderTasks, serverOk, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const [sortMode, setSortMode] = useState<SortMode>('priority')
   const [detailTask, setDetailTask] = useState<TaskConfig | null>(null)
   const [filter, setFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
@@ -144,6 +145,10 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshA
     onRefreshAll()
   }
 
+  function handlePostponeAll() {
+    onPostponeAll()
+  }
+
   return (
     <div className="p-4 md:p-6">
       {/* Header */}
@@ -170,6 +175,9 @@ export default function Scheduler({ tasks, onUpdateTask, onToggleAll, onRefreshA
           </button>
           <button onClick={handleRefreshAll} className="flex items-center gap-1.5 ba-btn-ghost text-sm">
             <RefreshCw size={13} /> 立即刷新
+          </button>
+          <button onClick={handlePostponeAll} className="flex items-center gap-1.5 ba-btn-ghost text-sm">
+            <CalendarClock size={13} /> 一键推迟
           </button>
         </div>
       </div>
