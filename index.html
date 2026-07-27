@@ -4,9 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BAAS · 蔚蓝档案自动脚本</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script>
       (() => {
         const mode = localStorage.getItem('baas-theme') || 'system'
@@ -14,6 +11,31 @@
         document.documentElement.classList.toggle('dark', dark)
       })()
     </script>
+    <style>
+      :root {
+        background: rgb(240 247 253);
+        color-scheme: light;
+      }
+      html.dark {
+        background: rgb(7 13 22);
+        color-scheme: dark;
+      }
+      html,
+      body,
+      #root {
+        min-height: 100%;
+      }
+      body {
+        margin: 0;
+        background: rgb(240 247 253);
+      }
+      html.dark body {
+        background: rgb(7 13 22);
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
