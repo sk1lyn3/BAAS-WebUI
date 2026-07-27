@@ -5,7 +5,7 @@ import Scheduler from './pages/Scheduler'
 import Settings from './pages/Settings'
 import Help from './pages/Help'
 import Logs from './pages/Logs'
-import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction, VirtualDisplayStatus, ThemeMode } from './lib/types'
+import type { Page, RunState, TaskConfig, LogEntry, DeviceConfig, ThenAction, VirtualDisplayStatus, ManagedModeStatus, ThemeMode } from './lib/types'
 import { INITIAL_TASKS, INITIAL_LOGS, INITIAL_CONFIG } from './lib/mock-data'
 import { api, WS_URL } from './lib/api'
 
@@ -22,6 +22,14 @@ const INITIAL_VIRTUAL_DISPLAY: VirtualDisplayStatus = {
   starting: false,
   displayId: null,
   configDir: null,
+}
+
+const INITIAL_MANAGED_MODE: ManagedModeStatus = {
+  running: false,
+  configs: [],
+  currentConfig: null,
+  nextWakeAt: null,
+  phase: 'idle',
 }
 
 function mapRawToConfig(raw: Record<string, unknown>, prev: DeviceConfig): DeviceConfig {
@@ -61,6 +69,7 @@ export default function App() {
   const [configList, setConfigList]   = useState<string[]>(['default'])
   const [activeConfig, setActiveConfig] = useState<string>('default')
   const [virtualDisplay, setVirtualDisplay] = useState<VirtualDisplayStatus>(INITIAL_VIRTUAL_DISPLAY)
+  const [managedMode, setManagedMode] = useState<ManagedModeStatus>(INITIAL_MANAGED_MODE)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('baas-theme')
     return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
@@ -101,6 +110,7 @@ export default function App() {
             setRunState(d.running ? 'running' : 'idle')
           if ('currentTask' in d) setCurrentTask(d.currentTask ?? null)
           if (d.virtualDisplay) setVirtualDisplay({ ...INITIAL_VIRTUAL_DISPLAY, ...d.virtualDisplay })
+          if (d.managedMode) setManagedMode({ ...INITIAL_MANAGED_MODE, ...d.managedMode })
         } else if (msg.type === 'log' && msg.data) {
           addLog(msg.data)
         } else if (msg.type === 'history' && Array.isArray(msg.data)) {
@@ -151,6 +161,7 @@ export default function App() {
       setRunState(s.running ? 'running' : 'idle')
       setCurrentTask((s.currentTask as string | null) ?? null)
       if (s.virtualDisplay) setVirtualDisplay({ ...INITIAL_VIRTUAL_DISPLAY, ...(s.virtualDisplay as Partial<VirtualDisplayStatus>) })
+      if (s.managedMode) setManagedMode({ ...INITIAL_MANAGED_MODE, ...(s.managedMode as Partial<ManagedModeStatus>) })
     }).catch(() => {/* use mock */})
 
     // Poll tasks every 30s to pick up next_tick updates from running BAAS
@@ -237,6 +248,41 @@ export default function App() {
       addLog({ level: 'ERROR', time: now(), message: `唤醒设备失败: ${res.error ?? ''}` })
     } else {
       addLog({ level: 'INFO', time: now(), message: '已唤醒设备并关闭物理屏幕' })
+    }
+  }
+
+  async function handleStartManagedMode(configs: string[]) {
+    if (!serverOk) {
+      addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端，无法启动托管模式' })
+      return
+    }
+    if (configs.length === 0) {
+      addLog({ level: 'WARNING', time: now(), message: '请至少选择一个托管配置' })
+      return
+    }
+    setRunState('running')
+    setCurrentTask('托管待机')
+    setManagedMode(prev => ({ ...prev, running: true, configs, phase: 'starting' }))
+    const res = await api.startManagedMode(configs).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      setRunState('idle')
+      setCurrentTask(null)
+      setManagedMode(INITIAL_MANAGED_MODE)
+      addLog({ level: 'ERROR', time: now(), message: `托管模式启动失败: ${res.error ?? ''}` })
+    }
+  }
+
+  async function handleStopManagedMode() {
+    if (!serverOk) return
+    setManagedMode(prev => ({ ...prev, phase: 'stopping' }))
+    const res = await api.stopManagedMode().catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    if (!res.ok) {
+      addLog({ level: 'ERROR', time: now(), message: `托管模式停止失败: ${res.error ?? ''}` })
+      setManagedMode(prev => ({ ...prev, phase: 'idle' }))
+    } else {
+      setCurrentTask(null)
+      setRunState('idle')
+      setManagedMode(INITIAL_MANAGED_MODE)
     }
   }
 
@@ -360,7 +406,7 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-ba-bg">
       <Sidebar page={page} onNav={setPage} running={runState === 'running'} currentTask={currentTask} serverOk={serverOk} themeMode={themeMode} onThemeChange={setThemeMode} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} onWakeDevice={handleWakeDevice} {...configProps} />}
+        {page === 'home'      && <Home runState={runState} currentTask={currentTask} logs={logs} onToggleRun={handleToggleRun} serverOk={serverOk} thenAction={config.thenAction} onThenActionChange={handleThenActionChange} virtualDisplay={virtualDisplay} managedMode={managedMode} screenshotMethod={config.screenshotMethod} onStartVirtualDisplay={handleStartVirtualDisplay} onStopVirtualDisplay={handleStopVirtualDisplay} onWakeDevice={handleWakeDevice} onStartManagedMode={handleStartManagedMode} onStopManagedMode={handleStopManagedMode} {...configProps} />}
         {page === 'scheduler' && <Scheduler tasks={tasks} onUpdateTask={handleUpdateTask} onToggleAll={handleToggleAll} onRefreshAll={handleRefreshAll} onPostponeAll={handlePostponeAll} onReorderTasks={handleReorderTasks} serverOk={serverOk} {...configProps} />}
         {page === 'settings'  && <Settings rawConfig={rawConfig} onSave={handleSaveConfig} serverOk={serverOk} runState={runState} currentTask={currentTask} onRunTask={handleRunTask} onStopRun={handleStopRun} onImport={handleImport} {...configProps} />}
         {page === 'help'      && <Help />}

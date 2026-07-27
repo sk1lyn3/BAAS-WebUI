@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
-import { Play, Square, Sword, ChevronDown, MonitorUp, MonitorX, Power } from 'lucide-react'
-import type { LogEntry, RunState, ThenAction, VirtualDisplayStatus, ScreenshotMethod } from '../lib/types'
-import { cn } from '../lib/utils'
+import { Play, Square, Sword, ChevronDown, MonitorUp, MonitorX, Power, RadioTower, Check } from 'lucide-react'
+import type { LogEntry, RunState, ThenAction, VirtualDisplayStatus, ManagedModeStatus, ScreenshotMethod } from '../lib/types'
+import { cn, formatTimestamp } from '../lib/utils'
 import ConfigSwitcher from '../components/ConfigSwitcher'
 
 const THEN_OPTIONS: ThenAction[] = ['无动作', '退出 Baas', '退出 模拟器', '退出 Baas 和 模拟器', '关机']
@@ -20,10 +20,13 @@ interface Props {
   onToggleRun: () => void
   serverOk: boolean
   virtualDisplay: VirtualDisplayStatus
+  managedMode: ManagedModeStatus
   screenshotMethod: ScreenshotMethod
   onStartVirtualDisplay: () => void
   onStopVirtualDisplay: () => void
   onWakeDevice: () => void
+  onStartManagedMode: (configs: string[]) => void
+  onStopManagedMode: () => void
   thenAction: ThenAction
   onThenActionChange: (action: ThenAction) => void
   configList: string[]
@@ -33,10 +36,18 @@ interface Props {
   onDeleteConfig: (name: string) => void
 }
 
-export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, virtualDisplay, screenshotMethod, onStartVirtualDisplay, onStopVirtualDisplay, onWakeDevice, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
+export default function Home({ runState, currentTask, logs, onToggleRun, serverOk, virtualDisplay, managedMode, screenshotMethod, onStartVirtualDisplay, onStopVirtualDisplay, onWakeDevice, onStartManagedMode, onStopManagedMode, thenAction, onThenActionChange, configList, activeConfig, onSwitchConfig, onCreateConfig, onDeleteConfig }: Props) {
   const logRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [showThen, setShowThen] = useState(false)
+  const [managedConfigs, setManagedConfigs] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('baas-managed-configs') || '[]')
+      return Array.isArray(saved) ? saved.filter((item): item is string => typeof item === 'string') : []
+    } catch {
+      return []
+    }
+  })
 
 
   useEffect(() => {
@@ -45,11 +56,41 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
     }
   }, [logs, autoScroll])
 
+  useEffect(() => {
+    setManagedConfigs(prev => {
+      const filtered = prev.filter(name => configList.includes(name))
+      const next = filtered.length > 0 ? filtered : (activeConfig ? [activeConfig] : [])
+      localStorage.setItem('baas-managed-configs', JSON.stringify(next))
+      return next
+    })
+  }, [configList, activeConfig])
+
   const isRunning = runState === 'running'
   const isStopping = runState === 'stopping'
   const usesVirtualScrcpy = screenshotMethod === 'virtual_scrcpy'
   const virtualReady = virtualDisplay.running
   const virtualStarting = virtualDisplay.starting
+  const managedRunning = managedMode.running
+  const managedBusy = managedMode.phase === 'starting' || managedMode.phase === 'stopping'
+  const managedStatus = managedRunning
+    ? managedMode.phase === 'running'
+      ? managedMode.currentConfig ? `执行中 · ${managedMode.currentConfig}` : '执行中'
+      : managedMode.phase === 'starting'
+      ? '启动中'
+      : managedMode.phase === 'stopping'
+      ? '停止中'
+      : managedMode.nextWakeAt
+      ? `待机 · ${formatTimestamp(managedMode.nextWakeAt)}`
+      : '待机'
+    : '未启动'
+
+  function toggleManagedConfig(name: string) {
+    setManagedConfigs(prev => {
+      const next = prev.includes(name) ? prev.filter(item => item !== name) : [...prev, name]
+      localStorage.setItem('baas-managed-configs', JSON.stringify(next))
+      return next
+    })
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5">
@@ -138,10 +179,10 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
 
         <button
           onClick={onToggleRun}
-          disabled={isStopping || (usesVirtualScrcpy && !virtualReady)}
+          disabled={managedRunning || isStopping || (usesVirtualScrcpy && !virtualReady)}
           className={cn(
             'flex items-center gap-2.5 font-semibold px-8 py-3 rounded-xl transition-all duration-150 active:scale-95 select-none text-sm shadow-sm',
-            isStopping || (usesVirtualScrcpy && !virtualReady)
+            managedRunning || isStopping || (usesVirtualScrcpy && !virtualReady)
               ? 'bg-ba-border/60 text-ba-muted/60 cursor-not-allowed'
               : isRunning
               ? 'bg-ba-error hover:bg-red-500 text-white shadow-sm'
@@ -149,7 +190,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
           )}
         >
           {isRunning ? <Square size={15} strokeWidth={2.5} /> : <Play size={15} strokeWidth={2.5} />}
-          {isStopping ? '停止中...' : isRunning ? '停止' : '档案，启动！'}
+          {managedRunning ? '托管运行中' : isStopping ? '停止中...' : isRunning ? '停止' : '档案，启动！'}
         </button>
 
         {/* Then action */}
@@ -185,6 +226,75 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
           )}
         </div>
       </div>
+
+      {usesVirtualScrcpy && (
+        <div className="ba-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                'h-8 w-8 rounded-lg flex items-center justify-center border',
+                managedRunning
+                  ? 'border-ba-primary/30 bg-ba-primary/10 text-ba-primary'
+                  : 'border-ba-border bg-ba-pale text-ba-muted'
+              )}>
+                <RadioTower size={16} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-ba-navy">托管模式</div>
+                <div className="text-xs text-ba-muted">{managedStatus}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {managedRunning ? (
+                <button
+                  onClick={onStopManagedMode}
+                  disabled={!serverOk || managedMode.phase === 'stopping'}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-ba-error/35 text-ba-error hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <Square size={14} />
+                  停止托管
+                </button>
+              ) : (
+                <button
+                  onClick={() => onStartManagedMode(managedConfigs)}
+                  disabled={!serverOk || isRunning || managedConfigs.length === 0 || managedBusy}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95',
+                    !serverOk || isRunning || managedConfigs.length === 0 || managedBusy
+                      ? 'bg-ba-border/60 text-ba-muted/60 cursor-not-allowed'
+                      : 'bg-ba-primary text-white hover:bg-ba-hover'
+                  )}
+                >
+                  <Play size={14} />
+                  启动托管
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {configList.map(name => {
+              const selected = managedConfigs.includes(name)
+              return (
+                <button
+                  key={name}
+                  onClick={() => toggleManagedConfig(name)}
+                  disabled={managedRunning}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all',
+                    selected
+                      ? 'border-ba-primary/40 bg-ba-primary/10 text-ba-primary'
+                      : 'border-ba-border bg-ba-card text-ba-muted hover:border-ba-primary/30 hover:text-ba-primary',
+                    managedRunning && 'cursor-not-allowed opacity-70'
+                  )}
+                >
+                  {selected && <Check size={12} />}
+                  {name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Log box */}
       <div className="ba-card overflow-hidden">

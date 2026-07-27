@@ -13,6 +13,14 @@ export interface VirtualDisplayStatus {
   configDir: string | null
 }
 
+export interface ManagedModeStatus {
+  running: boolean
+  configs: string[]
+  currentConfig: string | null
+  nextWakeAt: number | null
+  phase: 'idle' | 'starting' | 'running' | 'stopping'
+}
+
 export interface ActivityInfo {
   name: string
   stages: Record<string, unknown>
