@@ -17,7 +17,7 @@ interface Props {
   onSwitchConfig: (name: string) => void
   onCreateConfig: (name: string) => void
   onDeleteConfig: (name: string) => void
-  onRunTask: (task: string) => Promise<boolean>
+  onRunTask: (task: string, options?: Record<string, unknown>) => Promise<boolean>
   onStopRun: () => Promise<void>
   onImport: (file: File) => Promise<void>
 }
@@ -163,6 +163,7 @@ export default function Settings({
   const [importMsg, setImportMsg] = useState<string | null>(null)
   const [activityInfo, setActivityInfo] = useState<Record<string, ActivityInfo | null>>({})
   const [staticConfig, setStaticConfig] = useState<StaticConfig>({})
+  const [genericActivityEntry, setGenericActivityEntry] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
 
   // Sync form when rawConfig changes (e.g. after switching profiles)
@@ -186,14 +187,14 @@ export default function Settings({
 
   const isBusy = runState !== 'idle'
 
-  function runTaskButton(task: string, label: string) {
+  function runTaskButton(task: string, label: string, options?: Record<string, unknown>) {
     const running = runState === 'running' && currentTask === task
     const disabled = !serverOk || runState === 'stopping' || (isBusy && !running)
     return (
       <button
         type="button"
         disabled={disabled}
-        onClick={() => onRunTask(task)}
+        onClick={() => onRunTask(task, options)}
         className={cn(
           'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
           running
@@ -536,6 +537,12 @@ export default function Settings({
               <div className="text-sm text-ba-muted">
                 当期活动：<span className="text-ba-navy font-medium">{info?.name ?? '（无活动数据）'}</span>
               </div>
+              <SwitchRow
+                label="通用活动入口"
+                hint="仅本次点击任务生效；从任务界面左侧入口进入活动，不写入配置"
+                checked={genericActivityEntry}
+                onChange={setGenericActivityEntry}
+              />
               <div className="flex flex-wrap gap-2">
                 {(['explore_activity_story', 'explore_activity_mission', 'explore_activity_challenge'] as const).map(task => {
                   const labels: Record<string, string> = {
@@ -544,7 +551,7 @@ export default function Settings({
                     explore_activity_challenge: '推挑战',
                   }
                   return (
-                    <span key={task}>{info ? runTaskButton(task, labels[task]) : null}</span>
+                    <span key={task}>{(info || genericActivityEntry) ? runTaskButton(task, labels[task], { activity_use_generic_entry: genericActivityEntry }) : null}</span>
                   )
                 })}
                 {stopTaskButton()}

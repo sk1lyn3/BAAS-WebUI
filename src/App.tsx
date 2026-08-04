@@ -291,7 +291,7 @@ export default function App() {
     else if (runState === 'running') await handleStopRun()
   }
 
-  async function handleRunTask(task: string) {
+  async function handleRunTask(task: string, options?: Record<string, unknown>) {
     if (!serverOk) {
       addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端 (webui_server.py)，无法执行单次任务' })
       return false
@@ -306,7 +306,7 @@ export default function App() {
     }
     setRunState('running')
     setCurrentTask(task)
-    const res = await api.runTask(task).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
+    const res = await api.runTask(task, options).catch((err: unknown) => ({ ok: false, error: String(err) })) as { ok: boolean; error?: string }
     if (!res.ok) {
       setRunState('idle')
       setCurrentTask(null)

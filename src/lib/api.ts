@@ -43,5 +43,5 @@ export const api = {
     '/api/adb/connect', { method: 'POST', body: JSON.stringify({ serial }) }
   ),
   getActivity:    ()                          => req<Record<string, { name: string; stages: Record<string, unknown> } | null>>('/api/activity'),
-  runTask:        (task: string)              => req<{ ok: boolean }>('/api/run-task', { method: 'POST', body: JSON.stringify({ task }) }),
+  runTask:        (task: string, options?: Record<string, unknown>) => req<{ ok: boolean }>('/api/run-task', { method: 'POST', body: JSON.stringify({ task, options }) }),
 }
