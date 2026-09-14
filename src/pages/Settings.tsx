@@ -164,6 +164,7 @@ export default function Settings({
   const [activityInfo, setActivityInfo] = useState<Record<string, ActivityInfo | null>>({})
   const [staticConfig, setStaticConfig] = useState<StaticConfig>({})
   const [genericActivityEntry, setGenericActivityEntry] = useState(false)
+  const [genericActivityStoryCount, setGenericActivityStoryCount] = useState(12)
   const importRef = useRef<HTMLInputElement>(null)
 
   // Sync form when rawConfig changes (e.g. after switching profiles)
@@ -227,6 +228,16 @@ export default function Settings({
         {runState === 'stopping' ? '停止中...' : '停止当前任务'}
       </button>
     )
+  }
+
+  function activityTaskOptions(task: string) {
+    const options: Record<string, unknown> = {
+      activity_use_generic_entry: genericActivityEntry,
+    }
+    if (task === 'explore_activity_story' && genericActivityEntry) {
+      options.activity_generic_total_story = genericActivityStoryCount
+    }
+    return options
   }
 
   function teamAttributeEditor(key: 'preset_team_attribute' | 'side_team_attribute', title: string) {
@@ -543,6 +554,23 @@ export default function Settings({
                 checked={genericActivityEntry}
                 onChange={setGenericActivityEntry}
               />
+              {genericActivityEntry && (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <label className="text-ba-muted" htmlFor="generic-activity-story-count">故事关卡数</label>
+                  <input
+                    id="generic-activity-story-count"
+                    type="number"
+                    min={1}
+                    max={99}
+                    className="ba-input w-24 py-1.5"
+                    value={genericActivityStoryCount}
+                    onChange={e => {
+                      const next = Number(e.target.value)
+                      setGenericActivityStoryCount(Number.isFinite(next) ? Math.max(1, Math.min(99, next)) : 12)
+                    }}
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {(['explore_activity_story', 'explore_activity_mission', 'explore_activity_challenge'] as const).map(task => {
                   const labels: Record<string, string> = {
@@ -551,7 +579,7 @@ export default function Settings({
                     explore_activity_challenge: '推挑战',
                   }
                   return (
-                    <span key={task}>{(info || genericActivityEntry) ? runTaskButton(task, labels[task], { activity_use_generic_entry: genericActivityEntry }) : null}</span>
+                    <span key={task}>{(info || genericActivityEntry) ? runTaskButton(task, labels[task], activityTaskOptions(task)) : null}</span>
                   )
                 })}
                 {stopTaskButton()}
