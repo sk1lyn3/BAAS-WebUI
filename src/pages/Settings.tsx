@@ -164,6 +164,7 @@ export default function Settings({
   const [activityInfo, setActivityInfo] = useState<Record<string, ActivityInfo | null>>({})
   const [staticConfig, setStaticConfig] = useState<StaticConfig>({})
   const [genericActivityEntry, setGenericActivityEntry] = useState(false)
+  const [genericActivityStartAtMenu, setGenericActivityStartAtMenu] = useState(false)
   const [genericActivityStoryCount, setGenericActivityStoryCount] = useState(12)
   const importRef = useRef<HTMLInputElement>(null)
 
@@ -233,6 +234,9 @@ export default function Settings({
   function activityTaskOptions(task: string) {
     const options: Record<string, unknown> = {
       activity_use_generic_entry: genericActivityEntry,
+    }
+    if (genericActivityEntry) {
+      options.activity_generic_start_at_menu = genericActivityStartAtMenu
     }
     if (task === 'explore_activity_story' && genericActivityEntry) {
       options.activity_generic_total_story = genericActivityStoryCount
@@ -555,20 +559,28 @@ export default function Settings({
                 onChange={setGenericActivityEntry}
               />
               {genericActivityEntry && (
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <label className="text-ba-muted" htmlFor="generic-activity-story-count">故事关卡数</label>
-                  <input
-                    id="generic-activity-story-count"
-                    type="number"
-                    min={1}
-                    max={99}
-                    className="ba-input w-24 py-1.5"
-                    value={genericActivityStoryCount}
-                    onChange={e => {
-                      const next = Number(e.target.value)
-                      setGenericActivityStoryCount(Number.isFinite(next) ? Math.max(1, Math.min(99, next)) : 12)
-                    }}
+                <div className="flex flex-col gap-2">
+                  <SwitchRow
+                    label="已在活动界面"
+                    hint="跳过活动入口点击，直接从当前页面识别活动菜单"
+                    checked={genericActivityStartAtMenu}
+                    onChange={setGenericActivityStartAtMenu}
                   />
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <label className="text-ba-muted" htmlFor="generic-activity-story-count">故事关卡数</label>
+                    <input
+                      id="generic-activity-story-count"
+                      type="number"
+                      min={1}
+                      max={99}
+                      className="ba-input w-24 py-1.5"
+                      value={genericActivityStoryCount}
+                      onChange={e => {
+                        const next = Number(e.target.value)
+                        setGenericActivityStoryCount(Number.isFinite(next) ? Math.max(1, Math.min(99, next)) : 12)
+                      }}
+                    />
+                  </div>
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
