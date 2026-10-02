@@ -374,6 +374,7 @@ export default function Settings({
             <select className="ba-select" value={str('screenshot_method', 'scrcpy')}
               onChange={e => set('screenshot_method', e.target.value)}>
               <option value="uiautomator2">uiautomator2（推荐）</option>
+              <option value="android_companion">Android Companion（原生截图）</option>
               <option value="virtual_scrcpy">virtual_scrcpy（虚拟屏，缓存帧）</option>
               <option value="scrcpy">scrcpy（持续视频流）</option>
               <option value="adb">adb screencap（兼容性最好）</option>
@@ -383,6 +384,7 @@ export default function Settings({
             <select className="ba-select" value={str('control_method', 'uiautomator2')}
               onChange={e => set('control_method', e.target.value)}>
               <option value="uiautomator2">uiautomator2（推荐）</option>
+              <option value="android_companion">Android Companion（原生输入）</option>
               <option value="virtual_scrcpy">virtual_scrcpy（虚拟屏）</option>
               <option value="scrcpy">scrcpy（socket 注入）</option>
               <option value="adb">adb（兼容性最好）</option>

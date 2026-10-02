@@ -177,7 +177,7 @@ export default function App() {
       return
     }
     if (runState !== 'idle') return
-    if (config.screenshotMethod === 'virtual_scrcpy' && !virtualDisplay.running) {
+    if (['virtual_scrcpy', 'android_companion'].includes(config.screenshotMethod) && !virtualDisplay.running) {
       addLog({ level: 'WARNING', time: now(), message: '请先启动虚拟屏幕' })
       return
     }
@@ -203,8 +203,8 @@ export default function App() {
       addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端，无法启动虚拟屏幕' })
       return
     }
-    if (config.screenshotMethod !== 'virtual_scrcpy') {
-      addLog({ level: 'WARNING', time: now(), message: '当前截图方式不是 virtual_scrcpy' })
+    if (!['virtual_scrcpy', 'android_companion'].includes(config.screenshotMethod)) {
+      addLog({ level: 'WARNING', time: now(), message: '当前截图方式未使用虚拟屏幕' })
       return
     }
     if (virtualDisplay.running || virtualDisplay.starting) return
@@ -235,8 +235,8 @@ export default function App() {
       addLog({ level: 'WARNING', time: now(), message: '未连接到 BAAS 后端，无法唤醒设备' })
       return
     }
-    if (config.screenshotMethod !== 'virtual_scrcpy') {
-      addLog({ level: 'WARNING', time: now(), message: '当前截图方式不是 virtual_scrcpy' })
+    if (!['virtual_scrcpy', 'android_companion'].includes(config.screenshotMethod)) {
+      addLog({ level: 'WARNING', time: now(), message: '当前截图方式未使用虚拟屏幕' })
       return
     }
     if (!virtualDisplay.running) {
@@ -300,7 +300,7 @@ export default function App() {
       addLog({ level: 'WARNING', time: now(), message: '已有任务在运行，请先停止当前任务' })
       return false
     }
-    if (config.screenshotMethod === 'virtual_scrcpy' && !virtualDisplay.running) {
+    if (['virtual_scrcpy', 'android_companion'].includes(config.screenshotMethod) && !virtualDisplay.running) {
       addLog({ level: 'WARNING', time: now(), message: '请先启动虚拟屏幕' })
       return false
     }

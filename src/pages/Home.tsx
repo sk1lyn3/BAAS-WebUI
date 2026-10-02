@@ -68,7 +68,7 @@ export default function Home({ runState, currentTask, logs, onToggleRun, serverO
 
   const isRunning = runState === 'running'
   const isStopping = runState === 'stopping'
-  const usesVirtualScrcpy = screenshotMethod === 'virtual_scrcpy'
+  const usesVirtualScrcpy = ['virtual_scrcpy', 'android_companion'].includes(screenshotMethod)
   const virtualReady = virtualDisplay.running
   const virtualStarting = virtualDisplay.starting
   const managedRunning = managedMode.running

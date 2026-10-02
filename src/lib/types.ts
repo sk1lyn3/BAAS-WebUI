@@ -1,6 +1,6 @@
 export type Page = 'home' | 'scheduler' | 'settings' | 'help' | 'logs'
 export type Server = 'CN' | 'JP' | 'Global'
-export type ScreenshotMethod = 'scrcpy' | 'virtual_scrcpy' | 'uiautomator2' | 'adb'
+export type ScreenshotMethod = 'scrcpy' | 'virtual_scrcpy' | 'android_companion' | 'uiautomator2' | 'adb'
 export type ThenAction = '无动作' | '退出 Baas' | '退出 模拟器' | '退出 Baas 和 模拟器' | '关机'
 export type LogLevel = 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
 export type RunState = 'idle' | 'running' | 'stopping'
