@@ -66,9 +66,9 @@ export default function Logs({ logs }: Props) {
   }
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col">
+    <div className="p-4 md:p-6 h-full min-h-0 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex shrink-0 items-center justify-between mb-5">
         <div>
           <h2 className="text-lg font-bold text-ba-navy">日志</h2>
           <p className="text-sm text-ba-muted mt-0.5">共 {logs.length} 条 · 显示 {filtered.length} 条</p>
@@ -95,7 +95,7 @@ export default function Logs({ logs }: Props) {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="flex shrink-0 items-center gap-3 mb-4 flex-wrap">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ba-muted" />
@@ -132,11 +132,10 @@ export default function Logs({ logs }: Props) {
       </div>
 
       {/* Log terminal */}
-      <div className="flex-1 ba-card overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col ba-card overflow-hidden">
         <div
           ref={logRef}
-          className="h-full bg-[#0f172a] overflow-y-auto font-mono text-[12px] leading-relaxed p-4 log-scrollbar min-h-0"
-          style={{ minHeight: 0, height: 'calc(100vh - 260px)' }}
+          className="flex-1 min-h-0 bg-[#0f172a] overflow-y-auto font-mono text-[12px] leading-relaxed p-4 log-scrollbar"
         >
           {filtered.length === 0 ? (
             <div className="text-slate-600 text-center py-16">
